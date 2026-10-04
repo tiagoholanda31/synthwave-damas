@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DAMAS SYNTHWAVE - Cyber Neon Premium</title>
+    <!-- Google Fonts: Orbitron (Display/Sci-Fi) & Rajdhani (Technical UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-outrun">
+
+    <!-- Procedural Particle, Laser & Shockwave Canvas -->
+    <canvas id="fx-canvas"></canvas>
+
+    <!-- Retro Horizon Environment: Glowing Sun, Infinite Neon Grid & Digital Stars -->
+    <div class="synthwave-bg" aria-hidden="true">
+        <div class="synth-stars"></div>
+        <div class="synth-sun"></div>
+        <div class="synth-horizon-glow"></div>
+        <div class="synth-grid"></div>
+    </div>
+
+    <!-- Scanline CRT Texture Overlay -->
+    <div class="crt-overlay" aria-hidden="true"></div>
+
+    <!-- Screen Flash Effect for Combos -->
+    <div id="screen-flash" class="screen-flash" aria-hidden="true"></div>
+
+    <!-- Main Game Container -->
+    <div class="app-container">
+        
+        <!-- ===================================================================
+             TOP MINIMALIST CYBER HUD
+             =================================================================== -->
+        <header class="top-hud">
+            
+            <!-- Left: Brand Identity -->
+            <div class="hud-brand">
+                <div class="brand-emblem">
+                    <svg viewBox="0 0 24 24" class="brand-hex-icon">
+                        <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="12" cy="12" r="3.5" fill="currentColor"/>
+                    </svg>
+                </div>
+                <div class="brand-info">
+                    <h1 class="brand-title">DAMAS <span class="accent-text">SYNTHWAVE</span></h1>
+                    <span class="brand-sub">CYBER ARENA 2099</span>
+                </div>
+            </div>
+
+            <!-- Center: Tactical Match VS HUD (Pure Gameplay Focus) -->
+            <div class="tactical-hud-center">
+                
+                <!-- Player Cyan Pill -->
+                <div id="player-card-cyan" class="tactical-player-card cyan-player active-turn">
+                    <div class="player-avatar-ring">
+                        <span class="disc-dot cyan-disc-dot"></span>
+                    </div>
+                    <div class="tactical-player-info">
+                        <div class="tactical-name-row">
+                            <span class="tactical-name">NEON CYAN</span>
+                            <span class="tactical-turn-tag">VOCÊ</span>
+                        </div>
+                        <div class="tactical-pips-row">
+                            <span class="tactical-stat"><strong id="cyan-pieces-count">12</strong> PEÇAS</span>
+                            <span class="tactical-stat king-stat"><strong id="cyan-kings-count">0</strong> 👑</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center Dominance & Turn Core -->
+                <div class="match-core-gauge">
+                    <div class="match-status-bar">
+                        <div id="turn-badge" class="turn-badge turn-cyan">SEU TURNO</div>
+                        <div id="ai-thinking-badge" class="ai-thinking-badge">
+                            <span class="thinking-spinner"></span>
+                            <span>IA PROCESSANDO</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Energy Dominance Bar -->
+                    <div class="energy-track" title="Balanço de Poder em Campo">
+                        <div id="dominance-bar-fill" class="energy-fill" style="width: 50%;"></div>
+                        <div class="energy-track-center-mark"></div>
+                    </div>
+
+                    <div class="match-telemetry-micro">
+                        <span class="telemetry-item">MOVIMENTO: <strong id="move-counter">0</strong></span>
+                        <span class="telemetry-divider">•</span>
+                        <span class="telemetry-item mode-tag" id="current-mode-tag">PVE TÁTICO</span>
+                    </div>
+                </div>
+
+                <!-- Player Magenta (AI/P2) Pill -->
+                <div id="player-card-magenta" class="tactical-player-card magenta-player">
+                    <div class="player-avatar-ring">
+                        <span class="disc-dot magenta-disc-dot"></span>
+                    </div>
+                    <div class="tactical-player-info">
+                        <div class="tactical-name-row">
+                            <span class="tactical-name" id="magenta-player-title">SYNTH-IA</span>
+                            <span class="tactical-turn-tag">OPONENTE</span>
+                        </div>
+                        <div class="tactical-pips-row">
+                            <span class="tactical-stat"><strong id="magenta-pieces-count">12</strong> PEÇAS</span>
+                            <span class="tactical-stat king-stat"><strong id="magenta-kings-count">0</strong> 👑</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right: Quick Header Controls -->
+            <div class="hud-quick-actions">
+                <button id="btn-toggle-music" class="icon-hud-btn" title="Alternar Trilha Sonora Synthwave [M]" aria-label="Música">
+                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M4.27 3L3 4.27l9 9v.28c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4v-1.73l4.27 4.27L19 17.73 4.27 3zM14 7h4V3h-6v5.18l2 2V7z" fill="currentColor"/></svg>
+                    <span class="btn-micro-label">BGM</span>
+                </button>
+                <button id="btn-toggle-sfx" class="icon-hud-btn active" title="Alternar Efeitos Sonoros Neon" aria-label="Efeitos Sonoros">
+                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" fill="currentColor"/></svg>
+                    <span class="btn-micro-label">SFX</span>
+                </button>
+                <button id="btn-toggle-3d" class="icon-hud-btn active" title="Alternar Câmera 3D Cyber / 2D Plano" aria-label="Visão 3D">
+                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                    <span class="btn-micro-label">3D</span>
+                </button>
+                <button id="btn-open-drawer" class="icon-hud-btn drawer-trigger-btn" title="Configurações & Matrix [Esc]" aria-label="Menu Matrix">
+                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="currentColor"/></svg>
+                    <span class="btn-micro-label">MENU</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ===================================================================
+             MAIN ARENA: HERO BOARD (Expansive & Uncluttered)
+             =================================================================== -->
+        <main class="arena-container">
+            <div id="board-wrapper" class="board-wrapper perspective-3d">
+                
+                <!-- Cyber Decorative Corner Brackets -->
+                <div class="board-cyber-frame" aria-hidden="true">
+                    <span class="frame-corner corner-tl"></span>
+                    <span class="frame-corner corner-tr"></span>
+                    <span class="frame-corner corner-bl"></span>
+                    <span class="frame-corner corner-br"></span>
+                    <div class="board-ambient-underglow"></div>
+                </div>
+
+                <!-- 8x8 Checkers Grid -->
+                <div id="checkers-board" class="checkers-board">
+                    <!-- Populated dynamically by js/ui.js -->
+                </div>
+            </div>
+        </main>
+
+        <!-- ===================================================================
+             BOTTOM FLOATING ACTION DOCK (Discreet, Ergonomic & Gameplay-Centric)
+             =================================================================== -->
+        <nav class="bottom-action-dock" aria-label="Comandos Rápidos">
+            <button id="btn-undo" class="dock-btn" title="Desfazer Última Jogada (Atalho: Z)">
+                <span class="dock-btn-icon">↩</span>
+                <span class="dock-btn-text">Desfazer</span>
+                <kbd class="dock-key">Z</kbd>
+            </button>
+            <div class="dock-separator"></div>
+            <button id="btn-hint" class="dock-btn" title="Sugerir Melhor Jogada (Atalho: H)">
+                <span class="dock-btn-icon">💡</span>
+                <span class="dock-btn-text">Dica Tática</span>
+                <kbd class="dock-key">H</kbd>
+            </button>
+            <div class="dock-separator"></div>
+            <button id="btn-restart" class="dock-btn" title="Reiniciar Partida">
+                <span class="dock-btn-icon">🔄</span>
+                <span class="dock-btn-text">Novo Jogo</span>
+                <kbd class="dock-key">R</kbd>
+            </button>
+            <div class="dock-separator"></div>
+            <button id="btn-rules" class="dock-btn" title="Regras Oficiais">
+                <span class="dock-btn-icon">📋</span>
+                <span class="dock-btn-text">Regras</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- ===================================================================
+         DISCREET SLIDE-OVER MATRIX DRAWER (Menu Discreto & Configurações)
+         =================================================================== -->
+    <div id="matrix-drawer-backdrop" class="drawer-backdrop"></div>
+    <aside id="matrix-drawer" class="matrix-drawer" aria-label="Painel de Configurações da Matrix">
+        
+        <div class="drawer-header">
+            <div class="drawer-header-title">
+                <span class="cyber-glyph">❖</span>
+                <h2>CONFIGURAÇÕES DA MATRIX</h2>
+            </div>
+            <button id="btn-close-drawer" class="drawer-close-btn" aria-label="Fechar Menu">&times;</button>
+        </div>
+
+        <div class="drawer-body">
+            
+            <!-- Player Progression Card -->
+            <section class="drawer-section">
+                <div class="section-label">
+                    <span class="section-icon">🏆</span> PROGRESSÃO & PATENTE
+                </div>
+                <div class="xp-mini-card">
+                    <div class="xp-meta-row">
+                        <span id="player-rank-title" class="rank-badge">Iniciado Neon</span>
+                        <span id="player-xp-val" class="xp-counter">Nível 1 (0/150 XP)</span>
+                    </div>
+                    <div class="xp-progress-track">
+                        <div id="player-xp-bar" class="xp-progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gameplay Customization -->
+            <section class="drawer-section">
+                <div class="section-label">
+                    <span class="section-icon">⚙️</span> PARÂMETROS DA PARTIDA
+                </div>
+                
+                <div class="setting-field">
+                    <label for="select-game-mode" class="field-label">MODO DE COMBATE</label>
+                    <div class="cyber-select-wrapper">
+                        <select id="select-game-mode" class="cyber-select">
+                            <option value="pve" selected>Jogador vs Synth-IA</option>
+                            <option value="pvp">2 Jogadores (Local Pass & Play)</option>
+                            <option value="eve">IA vs IA (Modo Espectador)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-field">
+                    <label for="select-ai-diff" class="field-label">DIFICULDADE DA IA</label>
+                    <div class="cyber-select-wrapper">
+                        <select id="select-ai-diff" class="cyber-select">
+                            <option value="novice">Novato (Casual)</option>
+                            <option value="tactical" selected>Tático (Intermediário)</option>
+                            <option value="master">Cyber Mestre (Minimax Alpha-Beta)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-field">
+                    <label for="select-rules-preset" class="field-label">REGRAS DE DAMAS</label>
+                    <div class="cyber-select-wrapper">
+                        <select id="select-rules-preset" class="cyber-select">
+                            <option value="brazilian" selected>Regra Brasileira Oficial (Dama Voadora + Maioria)</option>
+                            <option value="casual">Regra Casual / Padrão</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-field">
+                    <label for="select-theme" class="field-label">TEMA VISUAL SYNTH</label>
+                    <div class="cyber-select-wrapper">
+                        <select id="select-theme" class="cyber-select">
+                            <option value="outrun" selected>Outrun Sunset (Cyan & Magenta)</option>
+                            <option value="cyberpunk">Cyberpunk 2099 (Toxic Green & Amber)</option>
+                            <option value="laser">Laser Retrowave (Electric Blue & Crimson)</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Audio & Immersion Controls -->
+            <section class="drawer-section">
+                <div class="section-label">
+                    <span class="section-icon">🔊</span> ÁUDIO & SÍNTESE 80s
+                </div>
+                <div class="audio-switch-grid">
+                    <button id="drawer-btn-music" class="drawer-action-pill">
+                        <span>🎵 Trilha Procedural</span>
+                        <span class="pill-status" id="drawer-music-status">OFF</span>
+                    </button>
+                    <button id="drawer-btn-sfx" class="drawer-action-pill active">
+                        <span>💥 Efeitos Sonoros</span>
+                        <span class="pill-status" id="drawer-sfx-status">ON</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Hotkeys Quick Guide -->
+            <section class="drawer-section">
+                <div class="section-label">
+                    <span class="section-icon">⌨️</span> ATALHOS RÁPIDOS
+                </div>
+                <div class="hotkeys-list">
+                    <div class="hotkey-item"><kbd>Z</kbd> <span>Desfazer jogada</span></div>
+                    <div class="hotkey-item"><kbd>H</kbd> <span>Sugerir dica tática</span></div>
+                    <div class="hotkey-item"><kbd>M</kbd> <span>Alternar música synthwave</span></div>
+                    <div class="hotkey-item"><kbd>R</kbd> <span>Reiniciar partida</span></div>
+                </div>
+            </section>
+
+        </div>
+
+        <div class="drawer-footer">
+            <span class="cyber-footer-note">SYNTHWAVE DAMAS v2.5 • CYBER ENGINE</span>
+        </div>
+    </aside>
+
+    <!-- ===================================================================
+         RULES MODAL
+         =================================================================== -->
+    <div id="rules-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="rules-modal-title" class="modal-title win-title">⚡ REGRAS OFICIAIS DE DAMAS</h2>
+                <button id="btn-close-rules" class="modal-close-btn" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <ul class="rules-list">
+                    <li><strong>Casas Escuras:</strong> O jogo é disputado nas 32 casas escuras do tabuleiro 8x8. Cada jogador inicia com 12 peças.</li>
+                    <li><strong>Avanço Simples:</strong> Peças comuns avançam 1 casa em diagonal para frente.</li>
+                    <li><strong>Captura para Frente e para Trás:</strong> Na regra oficial brasileira, peças comuns capturam saltando sobre o adversário tanto para frente quanto para trás!</li>
+                    <li><strong>Lei da Maioria:</strong> Havendo múltiplas opções de captura, é obrigatório optar pela linha que capture o MAIOR número de peças.</li>
+                    <li><strong>Dama Voadora:</strong> Ao atingir a última linha inimiga, a peça vira Dama, podendo voar longas distâncias nas 4 diagonais e capturar de longe!</li>
+                    <li><strong>Combos & Multiplicadores:</strong> Capturas em cadeia geram bônus de XP, shockwaves neon e multiplicadores de combo!</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-rules-ack">ENTENDIDO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         GAME OVER MODAL
+         =================================================================== -->
+    <div id="game-over-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+        <div class="modal-card game-over-card">
+            <div class="game-over-emblem">👑</div>
+            <div class="modal-header modal-center-header">
+                <h2 id="game-over-title" class="modal-title win-title">VITÓRIA GLORIOSA!</h2>
+            </div>
+            <div class="modal-body modal-center-body">
+                <p id="game-over-desc">Você dominou a Matrix e superou a inteligência artificial!</p>
+            </div>
+            <div class="modal-footer modal-center-footer">
+                <button id="btn-modal-restart" class="btn-primary">JOGAR NOVAMENTE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         TACTICAL NOTIFICATIONS & FLOATING TOASTS
+         =================================================================== -->
+    <div id="game-toast" class="toast-notice" role="status" aria-live="polite">Notificação do Sistema</div>
+    <div id="xp-toast" class="xp-toast" role="status" aria-live="polite">+25 XP [Captura]</div>
+
+    <!-- SCRIPTS -->
+    <script src="js/audio.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/fx.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
