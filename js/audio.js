@@ -15,9 +15,10 @@ class SynthwaveAudio {
         this.bpm = 118;
         this.musicInterval = null;
         this.step = 0;
-        this.sfxVolume = 0.7;
-        this.musicVolume = 0.35;
+        this.sfxVolume = parseFloat(localStorage.getItem('synth_damas_sfx_vol') || '0.7');
+        this.musicVolume = parseFloat(localStorage.getItem('synth_damas_bgm_vol') || '0.35');
         this.initialized = false;
+        this.lastHoverTime = 0;
     }
 
     init() {
@@ -63,19 +64,69 @@ class SynthwaveAudio {
 
     setSfxVolume(vol) {
         this.sfxVolume = Math.max(0, Math.min(1, vol));
+        localStorage.setItem('synth_damas_sfx_vol', this.sfxVolume.toString());
         if (this.sfxGain && this.ctx) {
-            this.sfxGain.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime);
+            this.sfxGain.gain.setTargetAtTime(this.sfxVolume, this.ctx.currentTime, 0.05);
         }
     }
 
     setMusicVolume(vol) {
         this.musicVolume = Math.max(0, Math.min(1, vol));
+        localStorage.setItem('synth_damas_bgm_vol', this.musicVolume.toString());
         if (this.musicGain && this.ctx) {
-            this.musicGain.gain.setValueAtTime(this.musicVolume, this.ctx.currentTime);
+            this.musicGain.gain.setTargetAtTime(this.musicVolume, this.ctx.currentTime, 0.05);
         }
     }
 
     // ====== SFX SYNTHESIZERS ======
+
+    // Subtle holographic hover tick (rate limited)
+    playHover() {
+        if (!this.initialized || this.isMuted) return;
+        const now = performance.now();
+        if (now - this.lastHoverTime < 70) return; // Prevent audio flutter
+        this.lastHoverTime = now;
+
+        this.resume();
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1400, t);
+        osc.frequency.exponentialRampToValueAtTime(2200, t + 0.025);
+
+        gain.gain.setValueAtTime(0.08 * this.sfxVolume, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+
+        osc.start(t);
+        osc.stop(t + 0.03);
+    }
+
+    // Mechanical piece drop snap
+    playDrop() {
+        if (!this.initialized || this.isMuted) return;
+        this.resume();
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(280, t);
+        osc.frequency.exponentialRampToValueAtTime(80, t + 0.08);
+
+        gain.gain.setValueAtTime(0.3 * this.sfxVolume, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+
+        osc.start(t);
+        osc.stop(t + 0.09);
+    }
 
     // 1. Piece Selection (Resonant Neon Blip)
     playSelect() {

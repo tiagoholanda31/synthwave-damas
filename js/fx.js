@@ -13,6 +13,8 @@ class SynthwaveFX {
         this.floatingTexts = [];
         this.motionTrails = [];
         this.dustParticles = [];
+        this.trajectories = [];
+        this.animDashOffset = 0;
         this.lastTime = performance.now();
         this.isRunning = false;
 
@@ -63,6 +65,9 @@ class SynthwaveFX {
     }
 
     update(dt) {
+        // Holographic beam marching ants
+        this.animDashOffset = (this.animDashOffset - dt * 26) % 18;
+
         // 1. Ambient cyber dust
         for (const p of this.dustParticles) {
             p.x += p.vx;
@@ -127,6 +132,37 @@ class SynthwaveFX {
     render() {
         if (!this.ctx) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 0. Render holographic trajectory laser arcs
+        if (this.trajectories && this.trajectories.length > 0) {
+            for (const tr of this.trajectories) {
+                this.ctx.save();
+                const color = tr.isCapture ? '#ff007f' : '#00f0ff';
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = tr.isCapture ? 2.8 : 2;
+                this.ctx.shadowColor = color;
+                this.ctx.shadowBlur = tr.isCapture ? 16 : 10;
+                this.ctx.setLineDash([8, 6]);
+                this.ctx.lineDashOffset = this.animDashOffset;
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(tr.fromX, tr.fromY);
+                const midX = (tr.fromX + tr.toX) / 2;
+                const midY = (tr.fromY + tr.toY) / 2 - 20;
+                this.ctx.quadraticCurveTo(midX, midY, tr.toX, tr.toY);
+                this.ctx.stroke();
+
+                // Destination pulsing ring
+                this.ctx.setLineDash([]);
+                this.ctx.beginPath();
+                this.ctx.arc(tr.toX, tr.toY, tr.isCapture ? 12 : 9, 0, Math.PI * 2);
+                this.ctx.fillStyle = tr.isCapture ? 'rgba(255, 0, 127, 0.28)' : 'rgba(0, 240, 255, 0.22)';
+                this.ctx.fill();
+                this.ctx.stroke();
+
+                this.ctx.restore();
+            }
+        }
 
         // 1. Render ambient cyber dust
         for (const p of this.dustParticles) {
@@ -391,6 +427,56 @@ class SynthwaveFX {
         setTimeout(() => {
             flashEl.className = 'screen-flash';
         }, 120);
+    }
+
+    /**
+     * Updates holographic trajectory arcs
+     */
+    setTrajectories(list) {
+        this.trajectories = list || [];
+    }
+
+    clearTrajectories() {
+        this.trajectories = [];
+    }
+
+    /**
+     * Epic celebration fireworks display for match victory
+     */
+    triggerVictoryFireworks() {
+        const colors = ['#00f0ff', '#ff007f', '#ffd700', '#00ff88', '#8b24d6'];
+        const bursts = 5;
+
+        for (let b = 0; b < bursts; b++) {
+            setTimeout(() => {
+                const x = window.innerWidth * (0.2 + Math.random() * 0.6);
+                const y = window.innerHeight * (0.2 + Math.random() * 0.4);
+                const color = colors[Math.floor(Math.random() * colors.length)];
+
+                this.shockwaves.push({
+                    x, y, radius: 10, speed: 6, lineWidth: 4, life: 0.6, maxLife: 0.6, color, chromatic: true
+                });
+
+                for (let i = 0; i < 40; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 8 + 2;
+                    const life = Math.random() * 0.8 + 0.5;
+                    this.particles.push({
+                        x, y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 1.5,
+                        friction: 0.95,
+                        size: Math.random() * 4 + 1.5,
+                        color,
+                        shape: Math.random() > 0.4 ? 'circle' : 'rect',
+                        rot: Math.random() * Math.PI * 2,
+                        vRot: (Math.random() - 0.5) * 8,
+                        life,
+                        maxLife: life
+                    });
+                }
+            }, b * 240);
+        }
     }
 }
 

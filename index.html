@@ -88,9 +88,13 @@
                     </div>
 
                     <div class="match-telemetry-micro">
-                        <span class="telemetry-item">MOVIMENTO: <strong id="move-counter">0</strong></span>
+                        <span class="telemetry-item" title="Tempo Decorrido da Partida">⏱️ <strong id="match-timer-display">00:00</strong></span>
+                        <span class="telemetry-divider">•</span>
+                        <span class="telemetry-item" title="Total de Lances Realizados">LANCES: <strong id="move-counter">0</strong></span>
                         <span class="telemetry-divider">•</span>
                         <span class="telemetry-item mode-tag" id="current-mode-tag">PVE TÁTICO</span>
+                        <span class="telemetry-divider">•</span>
+                        <span class="telemetry-item balance-tag" id="material-balance-tag" title="Equilíbrio Material de Peças">= BAL</span>
                     </div>
                 </div>
 
@@ -140,12 +144,31 @@
         <main class="arena-container">
             <div id="board-wrapper" class="board-wrapper perspective-3d">
                 
-                <!-- Cyber Decorative Corner Brackets -->
+                <!-- Cyber Decorative Corner Brackets & Outer Holographic Coordinates -->
                 <div class="board-cyber-frame" aria-hidden="true">
                     <span class="frame-corner corner-tl"></span>
                     <span class="frame-corner corner-tr"></span>
                     <span class="frame-corner corner-bl"></span>
                     <span class="frame-corner corner-br"></span>
+                    
+                    <!-- Outer Coordinate Rails (A-H & 1-8) -->
+                    <div class="coord-rail coord-rail-top" id="coord-rail-top">
+                        <span data-file="0">A</span><span data-file="1">B</span><span data-file="2">C</span><span data-file="3">D</span>
+                        <span data-file="4">E</span><span data-file="5">F</span><span data-file="6">G</span><span data-file="7">H</span>
+                    </div>
+                    <div class="coord-rail coord-rail-bottom" id="coord-rail-bottom">
+                        <span data-file="0">A</span><span data-file="1">B</span><span data-file="2">C</span><span data-file="3">D</span>
+                        <span data-file="4">E</span><span data-file="5">F</span><span data-file="6">G</span><span data-file="7">H</span>
+                    </div>
+                    <div class="coord-rail coord-rail-left" id="coord-rail-left">
+                        <span data-rank="0">8</span><span data-rank="1">7</span><span data-rank="2">6</span><span data-rank="3">5</span>
+                        <span data-rank="4">4</span><span data-rank="5">3</span><span data-rank="6">2</span><span data-rank="7">1</span>
+                    </div>
+                    <div class="coord-rail coord-rail-right" id="coord-rail-right">
+                        <span data-rank="0">8</span><span data-rank="1">7</span><span data-rank="2">6</span><span data-rank="3">5</span>
+                        <span data-rank="4">4</span><span data-rank="5">3</span><span data-rank="6">2</span><span data-rank="7">1</span>
+                    </div>
+
                     <div class="board-ambient-underglow"></div>
                 </div>
 
@@ -176,6 +199,12 @@
                 <span class="dock-btn-icon">🔄</span>
                 <span class="dock-btn-text">Novo Jogo</span>
                 <kbd class="dock-key">R</kbd>
+            </button>
+            <div class="dock-separator"></div>
+            <button id="btn-history" class="dock-btn" title="Feed Tático & Histórico de Lances (Atalho: L)">
+                <span class="dock-btn-icon">📜</span>
+                <span class="dock-btn-text">Feed Tático</span>
+                <kbd class="dock-key">L</kbd>
             </button>
             <div class="dock-separator"></div>
             <button id="btn-rules" class="dock-btn" title="Regras Oficiais">
@@ -283,6 +312,29 @@
                         <span class="pill-status" id="drawer-sfx-status">ON</span>
                     </button>
                 </div>
+
+                <!-- Granular Volume Sliders -->
+                <div class="audio-slider-group">
+                    <div class="slider-row">
+                        <span class="slider-label">Volume Trilha Synth (BGM)</span>
+                        <span class="slider-val" id="bgm-vol-val">35%</span>
+                    </div>
+                    <input type="range" id="slider-bgm-vol" class="cyber-slider" min="0" max="100" value="35" aria-label="Volume da Música">
+                </div>
+                <div class="audio-slider-group">
+                    <div class="slider-row">
+                        <span class="slider-label">Volume Efeitos Neon (SFX)</span>
+                        <span class="slider-val" id="sfx-vol-val">70%</span>
+                    </div>
+                    <input type="range" id="slider-sfx-vol" class="cyber-slider" min="0" max="100" value="70" aria-label="Volume dos Efeitos">
+                </div>
+
+                <div class="setting-toggle-row">
+                    <label for="toggle-haptic" class="toggle-label">
+                        <span>📳 Vibração Tátil (Haptic Feedback)</span>
+                    </label>
+                    <input type="checkbox" id="toggle-haptic" class="cyber-switch" checked>
+                </div>
             </section>
 
             <!-- Hotkeys Quick Guide -->
@@ -293,6 +345,7 @@
                 <div class="hotkeys-list">
                     <div class="hotkey-item"><kbd>Z</kbd> <span>Desfazer jogada</span></div>
                     <div class="hotkey-item"><kbd>H</kbd> <span>Sugerir dica tática</span></div>
+                    <div class="hotkey-item"><kbd>L</kbd> <span>Feed tático de lances</span></div>
                     <div class="hotkey-item"><kbd>M</kbd> <span>Alternar música synthwave</span></div>
                     <div class="hotkey-item"><kbd>R</kbd> <span>Reiniciar partida</span></div>
                 </div>
@@ -302,6 +355,37 @@
 
         <div class="drawer-footer">
             <span class="cyber-footer-note">SYNTHWAVE DAMAS v2.5 • CYBER ENGINE</span>
+        </div>
+    </aside>
+
+    <!-- ===================================================================
+         COMBAT LOG / MOVE HISTORY PANEL (Feed Tático Deslizante)
+         =================================================================== -->
+    <div id="history-backdrop" class="drawer-backdrop"></div>
+    <aside id="history-panel" class="history-panel" aria-label="Feed Tático & Histórico de Lances">
+        <div class="history-header">
+            <div class="history-title">
+                <span class="cyber-glyph">📜</span>
+                <h2>FEED TÁTICO</h2>
+            </div>
+            <button id="btn-close-history" class="drawer-close-btn" aria-label="Fechar Histórico">&times;</button>
+        </div>
+        <div class="history-telemetry-banner">
+            <div class="history-stat-mini">
+                <span class="stat-mini-label">TOTAL LANCES</span>
+                <span class="stat-mini-val" id="history-total-moves">0</span>
+            </div>
+            <div class="history-stat-mini">
+                <span class="stat-mini-label">MAIOR COMBO</span>
+                <span class="stat-mini-val" id="history-max-combo">--</span>
+            </div>
+            <div class="history-stat-mini">
+                <span class="stat-mini-label">STATUS</span>
+                <span class="stat-mini-val status-live">EM DISPUTA</span>
+            </div>
+        </div>
+        <div class="history-body" id="history-moves-list">
+            <div class="history-empty">Nenhum lance executado ainda. Mova uma peça para registrar o feed.</div>
         </div>
     </aside>
 
@@ -331,19 +415,58 @@
     </div>
 
     <!-- ===================================================================
-         GAME OVER MODAL
+         GAME OVER / MATCH PERFORMANCE REPORT MODAL
          =================================================================== -->
     <div id="game-over-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
         <div class="modal-card game-over-card">
-            <div class="game-over-emblem">👑</div>
+            <div class="game-over-hologram">
+                <div class="hologram-ring"></div>
+                <div id="game-over-emblem" class="game-over-emblem">👑</div>
+            </div>
             <div class="modal-header modal-center-header">
+                <span id="game-over-tag" class="match-badge">VITÓRIA TÁTICA</span>
                 <h2 id="game-over-title" class="modal-title win-title">VITÓRIA GLORIOSA!</h2>
             </div>
             <div class="modal-body modal-center-body">
                 <p id="game-over-desc">Você dominou a Matrix e superou a inteligência artificial!</p>
+                
+                <!-- Match Performance Telemetry Grid -->
+                <div class="match-stats-grid">
+                    <div class="stat-pill-box">
+                        <span class="stat-pill-icon">⏱️</span>
+                        <span class="stat-pill-val" id="stat-match-time">00:00</span>
+                        <span class="stat-pill-lbl">DURAÇÃO</span>
+                    </div>
+                    <div class="stat-pill-box">
+                        <span class="stat-pill-icon">♟️</span>
+                        <span class="stat-pill-val" id="stat-match-moves">0</span>
+                        <span class="stat-pill-lbl">LANCES</span>
+                    </div>
+                    <div class="stat-pill-box">
+                        <span class="stat-pill-icon">💥</span>
+                        <span class="stat-pill-val" id="stat-match-captures">0</span>
+                        <span class="stat-pill-lbl">CAPTURAS</span>
+                    </div>
+                    <div class="stat-pill-box">
+                        <span class="stat-pill-icon">⚡</span>
+                        <span class="stat-pill-val" id="stat-match-combo">x1</span>
+                        <span class="stat-pill-lbl">MAX COMBO</span>
+                    </div>
+                    <div class="stat-pill-box">
+                        <span class="stat-pill-icon">👑</span>
+                        <span class="stat-pill-val" id="stat-match-kings">0</span>
+                        <span class="stat-pill-lbl">DAMAS</span>
+                    </div>
+                    <div class="stat-pill-box xp-reward-box">
+                        <span class="stat-pill-icon">🌟</span>
+                        <span class="stat-pill-val" id="stat-match-xp">+250 XP</span>
+                        <span class="stat-pill-lbl">RECOMPENSA</span>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer modal-center-footer">
-                <button id="btn-modal-restart" class="btn-primary">JOGAR NOVAMENTE</button>
+                <button id="btn-modal-review" class="btn-secondary" title="Inspecionar tabuleiro final sem reiniciar">ANALISAR TABULEIRO</button>
+                <button id="btn-modal-restart" class="btn-primary" title="Iniciar nova disputa">JOGAR NOVAMENTE</button>
             </div>
         </div>
     </div>

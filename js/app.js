@@ -167,15 +167,79 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 2.1 Granular Volume Sliders
+    const bgmSlider = document.getElementById('slider-bgm-vol');
+    const sfxSlider = document.getElementById('slider-sfx-vol');
+    const bgmValText = document.getElementById('bgm-vol-val');
+    const sfxValText = document.getElementById('sfx-vol-val');
+
+    if (bgmSlider) {
+        bgmSlider.value = Math.round(audio.musicVolume * 100);
+        if (bgmValText) bgmValText.textContent = `${bgmSlider.value}%`;
+        bgmSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10) / 100;
+            audio.setMusicVolume(val);
+            if (bgmValText) bgmValText.textContent = `${e.target.value}%`;
+        });
+    }
+
+    if (sfxSlider) {
+        sfxSlider.value = Math.round(audio.sfxVolume * 100);
+        if (sfxValText) sfxValText.textContent = `${sfxSlider.value}%`;
+        sfxSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10) / 100;
+            audio.setSfxVolume(val);
+            if (sfxValText) sfxValText.textContent = `${e.target.value}%`;
+            audio.playHover();
+        });
+    }
+
+    // 2.2 Combat Log / Move History Drawer Handlers
+    const historyPanel = document.getElementById('history-panel');
+    const historyBackdrop = document.getElementById('history-backdrop');
+    const btnHistory = document.getElementById('btn-history');
+    const btnCloseHistory = document.getElementById('btn-close-history');
+
+    const openHistory = () => {
+        if (historyPanel) historyPanel.classList.add('open');
+        if (historyBackdrop) historyBackdrop.classList.add('open');
+    };
+
+    const closeHistory = () => {
+        if (historyPanel) historyPanel.classList.remove('open');
+        if (historyBackdrop) historyBackdrop.classList.remove('open');
+    };
+
+    if (btnHistory) btnHistory.addEventListener('click', openHistory);
+    if (btnCloseHistory) btnCloseHistory.addEventListener('click', closeHistory);
+    if (historyBackdrop) historyBackdrop.addEventListener('click', closeHistory);
+
+    // 2.3 Post-Match Review Button
+    const btnModalReview = document.getElementById('btn-modal-review');
+    if (btnModalReview) {
+        btnModalReview.addEventListener('click', () => {
+            const modal = document.getElementById('game-over-modal');
+            if (modal) modal.classList.remove('open');
+            ui.showWarningToast('Modo de Análise: Tabuleiro Liberado para Inspeção');
+        });
+    }
+
     // 10. Hotkeys for Pro Gamers
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeDrawer();
             closeRules();
+            closeHistory();
         } else if (e.key === 'z' || e.key === 'Z') {
             ui.undoMove();
         } else if (e.key === 'h' || e.key === 'H') {
             ui.showHint();
+        } else if (e.key === 'l' || e.key === 'L') {
+            if (historyPanel && historyPanel.classList.contains('open')) {
+                closeHistory();
+            } else {
+                openHistory();
+            }
         } else if (e.key === 'm' || e.key === 'M') {
             toggleMusicHandler();
         } else if (e.key === 'r' || e.key === 'R') {
@@ -183,5 +247,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    console.log('%c⚡ SYNTHWAVE DAMAS ONLINE v2.5 ⚡', 'color: #00f0ff; font-size: 16px; font-weight: bold; background: #0b0217; padding: 6px 12px; border: 1px solid #ff007f; border-radius: 6px;');
+    console.log('%c⚡ SYNTHWAVE DAMAS ONLINE v2.6 - PRO UX/UI ⚡', 'color: #00f0ff; font-size: 16px; font-weight: bold; background: #0b0217; padding: 6px 12px; border: 1px solid #ff007f; border-radius: 6px;');
 });
