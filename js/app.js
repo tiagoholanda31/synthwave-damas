@@ -1,251 +1,398 @@
 /**
- * SYNTHWAVE DAMAS - MAIN APPLICATION BOOTSTRAP
- * Integrates Audio, Engine, AI, FX, UI, Drawer Controls and Event Bindings.
+ * SYNTHWAVE DAMAS - BOOTSTRAP
+ * Liga áudio, motor, IA, efeitos e UI; cuida de ajustes persistidos, diálogos
+ * (foco preso, Esc, retorno de foco), confirmação de ações destrutivas e atalhos.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize Subsystems
+    const store = window.SynthStore;
     const audio = window.synthAudio;
-    const engine = new CheckersEngine('brazilian');
-    const ai = new SynthwaveAI('tactical');
-    const fx = new SynthwaveFX('fx-canvas');
-    const ui = new SynthwaveUI(engine, ai, fx, audio);
 
-    // 2. Audio & BGM Toggle Handlers
+    // ------------------------------------------------------------------
+    // Ajustes persistidos
+    // ------------------------------------------------------------------
+    const ALLOWED = {
+        mode: ['pve', 'pvp', 'eve'],
+        difficulty: ['novice', 'tactical', 'master'],
+        rules: ['brazilian', 'casual'],
+        theme: ['outrun', 'cyberpunk', 'laser']
+    };
+    const defaults = { mode: 'pve', difficulty: 'tactical', rules: 'brazilian', theme: 'outrun', view3d: true, sfx: true, haptic: true };
+    const settings = { ...defaults, ...store.getJSON('synth_damas_settings', {}) };
+    for (const [key, values] of Object.entries(ALLOWED)) {
+        if (!values.includes(settings[key])) settings[key] = defaults[key];
+    }
+    const saveSettings = () => store.set('synth_damas_settings', JSON.stringify(settings));
+
+    const applyTheme = (theme) => {
+        [...document.body.classList].filter(c => c.startsWith('theme-')).forEach(c => document.body.classList.remove(c));
+        document.body.classList.add(`theme-${theme}`);
+    };
+    applyTheme(settings.theme);
+    audio.setMute(!settings.sfx);
+
+    const engine = new CheckersEngine(settings.rules);
+    const ai = new SynthwaveAI(settings.difficulty);
+    const fx = new SynthwaveFX('fx-canvas');
+    const ui = new SynthwaveUI(engine, ai, fx, audio, { mode: settings.mode, view3d: settings.view3d, theme: settings.theme });
+
+    // ------------------------------------------------------------------
+    // Diálogos e gavetas
+    // ------------------------------------------------------------------
+    const backdrop = document.getElementById('drawer-backdrop');
+    const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])';
+
+    const dialogs = (() => {
+        const stack = [];
+        const isPanel = (el) => el.classList.contains('drawer') || el.classList.contains('feed-panel');
+
+        const syncBackdrop = () => {
+            backdrop.classList.toggle('open', stack.some(entry => isPanel(entry.el)));
+        };
+
+        const open = (id, { onClose } = {}) => {
+            const el = document.getElementById(id);
+            if (!el || stack.some(entry => entry.el === el)) return;
+            stack.push({ id, el, onClose, returnFocus: document.activeElement });
+            el.classList.add('open');
+            syncBackdrop();
+            requestAnimationFrame(() => {
+                const target = el.querySelector('[data-autofocus]') || el.querySelector('.btn-primary') || el.querySelector(FOCUSABLE);
+                (target || el).focus({ preventScroll: true });
+            });
+        };
+
+        const close = (id) => {
+            const index = stack.findIndex(entry => entry.id === id);
+            if (index === -1) {
+                document.getElementById(id)?.classList.remove('open');
+                return;
+            }
+            const [entry] = stack.splice(index, 1);
+            entry.el.classList.remove('open');
+            syncBackdrop();
+            if (entry.returnFocus && document.contains(entry.returnFocus)) {
+                entry.returnFocus.focus({ preventScroll: true });
+            }
+            if (entry.onClose) entry.onClose();
+        };
+
+        const closeTop = () => {
+            const top = stack[stack.length - 1];
+            if (!top) return false;
+            close(top.id);
+            return true;
+        };
+
+        const closePanels = () => {
+            [...stack].reverse().filter(entry => isPanel(entry.el)).forEach(entry => close(entry.id));
+        };
+
+        // Foco preso no diálogo do topo
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Tab' || stack.length === 0) return;
+            const el = stack[stack.length - 1].el;
+            const items = [...el.querySelectorAll(FOCUSABLE)].filter(n => n.getClientRects().length > 0);
+            if (items.length === 0) return;
+            const first = items[0];
+            const last = items[items.length - 1];
+            if (!el.contains(document.activeElement)) {
+                e.preventDefault();
+                first.focus();
+            } else if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        });
+
+        return {
+            open,
+            close,
+            closeTop,
+            closePanels,
+            isOpen: (id) => stack.some(entry => entry.id === id),
+            anyOpen: () => stack.length > 0
+        };
+    })();
+    ui.dialogs = dialogs;
+
+    backdrop.addEventListener('click', () => dialogs.closePanels());
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) dialogs.close(modal.id);
+        });
+    });
+
+    // Confirmação para ações que encerram a partida em andamento
+    const confirmDialog = ({ title, desc, ok, cancel = 'Continuar jogando' }) => new Promise((resolve) => {
+        const okBtn = document.getElementById('confirm-ok');
+        const cancelBtn = document.getElementById('confirm-cancel');
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-desc').textContent = desc;
+        okBtn.textContent = ok;
+        cancelBtn.textContent = cancel;
+
+        let settled = false;
+        const finish = (value) => {
+            if (settled) return;
+            settled = true;
+            okBtn.onclick = null;
+            cancelBtn.onclick = null;
+            dialogs.close('confirm-modal');
+            resolve(value);
+        };
+        okBtn.onclick = () => finish(true);
+        cancelBtn.onclick = () => finish(false);
+        dialogs.open('confirm-modal', { onClose: () => finish(false) });
+    });
+
+    const requestRestart = async () => {
+        if (ui.isGameInProgress()) {
+            const ok = await confirmDialog({
+                title: 'Começar nova partida?',
+                desc: 'A partida em andamento será encerrada.',
+                ok: 'Nova partida'
+            });
+            if (!ok) return;
+        }
+        await ui.restartGame();
+    };
+
+    // ------------------------------------------------------------------
+    // Áudio
+    // ------------------------------------------------------------------
     const musicBtn = document.getElementById('btn-toggle-music');
     const sfxBtn = document.getElementById('btn-toggle-sfx');
-    const drawerMusicBtn = document.getElementById('drawer-btn-music');
-    const drawerSfxBtn = document.getElementById('drawer-btn-sfx');
-    const drawerMusicStatus = document.getElementById('drawer-music-status');
-    const drawerSfxStatus = document.getElementById('drawer-sfx-status');
+    const musicSwitch = document.getElementById('toggle-music');
+    const sfxSwitch = document.getElementById('toggle-sfx');
 
-    let sfxMuted = false;
-
-    const updateAudioUI = (musicPlaying, sfxActive) => {
-        if (musicBtn) {
-            musicBtn.classList.toggle('active', musicPlaying);
-            musicBtn.querySelector('.btn-micro-label').textContent = musicPlaying ? 'BGM: ON' : 'BGM';
-        }
-        if (drawerMusicBtn) {
-            drawerMusicBtn.classList.toggle('active', musicPlaying);
-            if (drawerMusicStatus) drawerMusicStatus.textContent = musicPlaying ? 'ON' : 'OFF';
-        }
-
-        if (sfxBtn) {
-            sfxBtn.classList.toggle('active', sfxActive);
-            sfxBtn.querySelector('.btn-micro-label').textContent = sfxActive ? 'SFX' : 'MUDO';
-        }
-        if (drawerSfxBtn) {
-            drawerSfxBtn.classList.toggle('active', sfxActive);
-            if (drawerSfxStatus) drawerSfxStatus.textContent = sfxActive ? 'ON' : 'MUDO';
-        }
+    const syncAudioUI = () => {
+        const musicOn = audio.isMusicPlaying;
+        const sfxOn = !audio.isMuted;
+        musicBtn.setAttribute('aria-pressed', String(musicOn));
+        musicSwitch.checked = musicOn;
+        sfxBtn.setAttribute('aria-pressed', String(sfxOn));
+        sfxBtn.querySelector('use').setAttribute('href', sfxOn ? '#i-speaker' : '#i-speaker-off');
+        sfxSwitch.checked = sfxOn;
     };
 
-    const toggleMusicHandler = () => {
+    const setMusic = (on) => {
         audio.resume();
-        const isPlaying = audio.toggleMusic();
-        updateAudioUI(isPlaying, !sfxMuted);
+        if (on) audio.startMusic(); else audio.stopMusic();
+        syncAudioUI();
     };
 
-    const toggleSfxHandler = () => {
-        sfxMuted = !sfxMuted;
-        audio.setMute(sfxMuted);
-        updateAudioUI(audio.isMusicPlaying, !sfxMuted);
+    const setSfx = (on) => {
+        audio.setMute(!on);
+        settings.sfx = on;
+        saveSettings();
+        syncAudioUI();
     };
 
-    if (musicBtn) musicBtn.addEventListener('click', toggleMusicHandler);
-    if (drawerMusicBtn) drawerMusicBtn.addEventListener('click', toggleMusicHandler);
-    if (sfxBtn) sfxBtn.addEventListener('click', toggleSfxHandler);
-    if (drawerSfxBtn) drawerSfxBtn.addEventListener('click', toggleSfxHandler);
+    musicBtn.addEventListener('click', () => setMusic(!audio.isMusicPlaying));
+    musicSwitch.addEventListener('change', () => setMusic(musicSwitch.checked));
+    sfxBtn.addEventListener('click', () => setSfx(audio.isMuted));
+    sfxSwitch.addEventListener('change', () => setSfx(sfxSwitch.checked));
 
-    // First user gesture initializes AudioContext seamlessly
-    const handleFirstGesture = () => {
+    const bindSlider = (sliderId, outputId, initial, apply) => {
+        const slider = document.getElementById(sliderId);
+        const output = document.getElementById(outputId);
+        const paint = () => {
+            slider.style.setProperty('--val', `${slider.value}%`);
+            output.textContent = `${slider.value}%`;
+        };
+        slider.value = Math.round(initial * 100);
+        paint();
+        slider.addEventListener('input', () => {
+            paint();
+            apply(Number(slider.value) / 100);
+        });
+    };
+    bindSlider('slider-bgm-vol', 'bgm-vol-val', audio.musicVolume, (v) => audio.setMusicVolume(v));
+    bindSlider('slider-sfx-vol', 'sfx-vol-val', audio.sfxVolume, (v) => {
+        audio.setSfxVolume(v);
+        audio.playHover();
+    });
+
+    const hapticSwitch = document.getElementById('toggle-haptic');
+    hapticSwitch.checked = settings.haptic;
+    hapticSwitch.addEventListener('change', () => {
+        settings.haptic = hapticSwitch.checked;
+        saveSettings();
+    });
+
+    // O navegador só libera o AudioContext depois de um gesto
+    const unlockAudio = () => {
         audio.init();
         audio.resume();
-        window.removeEventListener('click', handleFirstGesture);
-        window.removeEventListener('keydown', handleFirstGesture);
     };
-    window.addEventListener('click', handleFirstGesture, { once: true });
-    window.addEventListener('keydown', handleFirstGesture, { once: true });
+    window.addEventListener('pointerdown', unlockAudio, { once: true });
+    window.addEventListener('keydown', unlockAudio, { once: true });
 
-    // 3. Matrix Settings Drawer Handlers (Menu Discreto)
-    const drawer = document.getElementById('matrix-drawer');
-    const drawerBackdrop = document.getElementById('matrix-drawer-backdrop');
-    const openDrawerBtn = document.getElementById('btn-open-drawer');
-    const closeDrawerBtn = document.getElementById('btn-close-drawer');
-
-    const openDrawer = () => {
-        if (drawer) drawer.classList.add('open');
-        if (drawerBackdrop) drawerBackdrop.classList.add('open');
-    };
-
-    const closeDrawer = () => {
-        if (drawer) drawer.classList.remove('open');
-        if (drawerBackdrop) drawerBackdrop.classList.remove('open');
-    };
-
-    if (openDrawerBtn) openDrawerBtn.addEventListener('click', openDrawer);
-    if (closeDrawerBtn) closeDrawerBtn.addEventListener('click', closeDrawer);
-    if (drawerBackdrop) drawerBackdrop.addEventListener('click', closeDrawer);
-
-    // 4. Game Control Actions
-    const btnUndo = document.getElementById('btn-undo');
-    const btnHint = document.getElementById('btn-hint');
-    const btnRestart = document.getElementById('btn-restart');
+    // ------------------------------------------------------------------
+    // Visão 3D
+    // ------------------------------------------------------------------
     const btn3D = document.getElementById('btn-toggle-3d');
-    const btnModalRestart = document.getElementById('btn-modal-restart');
+    const switch3D = document.getElementById('toggle-3d-setting');
+    const set3D = (on) => {
+        ui.set3D(on);
+        btn3D.setAttribute('aria-pressed', String(on));
+        switch3D.checked = on;
+        settings.view3d = on;
+        saveSettings();
+    };
+    btn3D.setAttribute('aria-pressed', String(ui.is3D));
+    switch3D.checked = ui.is3D;
+    btn3D.addEventListener('click', () => set3D(!ui.is3D));
+    switch3D.addEventListener('change', () => set3D(switch3D.checked));
 
-    if (btnUndo) btnUndo.addEventListener('click', () => ui.undoMove());
-    if (btnHint) btnHint.addEventListener('click', () => ui.showHint());
-    if (btnRestart) btnRestart.addEventListener('click', () => ui.restartGame());
-    if (btnModalRestart) btnModalRestart.addEventListener('click', () => ui.restartGame());
+    // ------------------------------------------------------------------
+    // Ajustes da partida
+    // ------------------------------------------------------------------
+    const DIFFICULTY_HELP = {
+        novice: 'Escolhe lances ao acaso entre os permitidos. Bom para aprender.',
+        tactical: 'Calcula 3 lances à frente com minimax.',
+        master: 'Calcula 5 lances à frente com minimax e poda alfa-beta.'
+    };
+    const RULES_HELP = {
+        brazilian: 'Dama voadora, captura para trás e lei da maioria.',
+        casual: 'Mesmas capturas, sem a lei da maioria: qualquer captura vale.'
+    };
+    const MODE_NAME = { pve: 'Contra IA', pvp: '2 jogadores', eve: 'IA vs IA' };
+    const RULES_NAME = { brazilian: 'Regra brasileira', casual: 'Regra casual' };
 
-    if (btn3D) {
-        btn3D.addEventListener('click', () => {
-            const is3D = ui.toggle3D();
-            btn3D.classList.toggle('active', is3D);
-            const microLabel = btn3D.querySelector('.btn-micro-label');
-            if (microLabel) microLabel.textContent = is3D ? '3D' : '2D';
-        });
-    }
+    const radios = (name) => [...document.querySelectorAll(`input[name="${name}"]`)];
+    const checkRadio = (name, value) => radios(name).forEach(input => { input.checked = input.value === value; });
+    const diffField = document.getElementById('field-difficulty');
 
-    // 5. Rules Modal Handlers
-    const btnRules = document.getElementById('btn-rules');
-    const rulesModal = document.getElementById('rules-modal');
-    const closeRulesBtn = document.getElementById('btn-close-rules');
-    const rulesAckBtn = document.getElementById('btn-rules-ack');
+    const syncSettingsUI = () => {
+        checkRadio('game-mode', settings.mode);
+        checkRadio('ai-diff', settings.difficulty);
+        checkRadio('rules', settings.rules);
+        checkRadio('theme', settings.theme);
+        document.getElementById('difficulty-help').textContent = DIFFICULTY_HELP[settings.difficulty];
+        document.getElementById('rules-help').textContent = RULES_HELP[settings.rules];
+        diffField.classList.toggle('is-disabled', settings.mode === 'pvp');
+    };
+    syncSettingsUI();
 
-    const openRules = () => { if (rulesModal) rulesModal.classList.add('open'); };
-    const closeRules = () => { if (rulesModal) rulesModal.classList.remove('open'); };
+    // Troca que reinicia a partida: pede confirmação se houver jogo em andamento
+    const bindRestartingSetting = (name, key, apply, describe) => {
+        radios(name).forEach(input => input.addEventListener('change', async () => {
+            if (!input.checked) return;
+            const previous = settings[key];
+            if (ui.isGameInProgress()) {
+                const ok = await confirmDialog({
+                    title: `Trocar para ${describe(input.value)}?`,
+                    desc: 'A mudança começa uma nova partida.',
+                    ok: 'Trocar e recomeçar'
+                });
+                if (!ok) {
+                    checkRadio(name, previous);
+                    return;
+                }
+            }
+            settings[key] = input.value;
+            saveSettings();
+            apply(input.value);
+            syncSettingsUI();
+            await ui.restartGame();
+            ui.showToast(`${describe(input.value)} · nova partida`, 'ok', 'check');
+        }));
+    };
 
-    if (btnRules) btnRules.addEventListener('click', openRules);
-    if (closeRulesBtn) closeRulesBtn.addEventListener('click', closeRules);
-    if (rulesAckBtn) rulesAckBtn.addEventListener('click', closeRules);
+    bindRestartingSetting('game-mode', 'mode', (v) => { ui.gameMode = v; }, (v) => MODE_NAME[v]);
+    bindRestartingSetting('rules', 'rules', (v) => { engine.ruleMode = v; }, (v) => RULES_NAME[v]);
 
-    // Close modals on overlay backdrop click
-    document.querySelectorAll('.modal-overlay').forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.classList.remove('open');
-        });
+    radios('ai-diff').forEach(input => input.addEventListener('change', () => {
+        if (!input.checked) return;
+        settings.difficulty = input.value;
+        saveSettings();
+        ai.setDifficulty(input.value);
+        syncSettingsUI();
+        ui.updateHUD();
+        ui.showToast(`IA no nível ${input.nextElementSibling.textContent.trim()}`, 'ok', 'gauge');
+    }));
+
+    radios('theme').forEach(input => input.addEventListener('change', () => {
+        if (!input.checked) return;
+        settings.theme = input.value;
+        saveSettings();
+        applyTheme(input.value);
+        ui.onThemeChange(input.value);
+    }));
+
+    // ------------------------------------------------------------------
+    // Dock, gavetas e modais
+    // ------------------------------------------------------------------
+    const narrowLayout = window.matchMedia('(max-width: 1023px)');
+    const feedPanel = document.getElementById('history-panel');
+
+    const toggleFeed = () => {
+        if (narrowLayout.matches) {
+            if (dialogs.isOpen('history-panel')) dialogs.close('history-panel');
+            else dialogs.open('history-panel');
+        } else {
+            // No desktop a lista já está visível: só chama atenção para ela
+            feedPanel.animate(
+                [{ boxShadow: '0 0 0 0 rgba(var(--p1-rgb), 0)' }, { boxShadow: '0 0 0 2px rgba(var(--p1-rgb), .6)' }, { boxShadow: '0 0 0 0 rgba(var(--p1-rgb), 0)' }],
+                { duration: 700, easing: 'ease-out' }
+            );
+        }
+    };
+    narrowLayout.addEventListener('change', () => {
+        if (!narrowLayout.matches && dialogs.isOpen('history-panel')) dialogs.close('history-panel');
     });
 
-    // 6. Game Mode Selector (PvE, PvP, EvE)
-    const modeSelect = document.getElementById('select-game-mode');
-    if (modeSelect) {
-        modeSelect.addEventListener('change', (e) => {
-            ui.gameMode = e.target.value;
-            ui.restartGame();
-            ui.showWarningToast(`Modo: ${modeSelect.options[modeSelect.selectedIndex].text}`);
-        });
-    }
+    document.getElementById('btn-undo').addEventListener('click', () => ui.undoMove());
+    document.getElementById('btn-hint').addEventListener('click', () => ui.showHint());
+    document.getElementById('btn-restart').addEventListener('click', requestRestart);
+    document.getElementById('btn-history').addEventListener('click', toggleFeed);
+    document.getElementById('btn-close-history').addEventListener('click', () => dialogs.close('history-panel'));
+    document.getElementById('btn-rules').addEventListener('click', () => dialogs.open('rules-modal'));
+    document.getElementById('btn-close-rules').addEventListener('click', () => dialogs.close('rules-modal'));
+    document.getElementById('btn-rules-ack').addEventListener('click', () => dialogs.close('rules-modal'));
+    document.getElementById('btn-open-drawer').addEventListener('click', () => dialogs.open('matrix-drawer'));
+    document.getElementById('btn-close-drawer').addEventListener('click', () => dialogs.close('matrix-drawer'));
 
-    // 7. AI Difficulty Selector
-    const diffSelect = document.getElementById('select-ai-diff');
-    if (diffSelect) {
-        diffSelect.addEventListener('change', (e) => {
-            ai.setDifficulty(e.target.value);
-            ui.showWarningToast(`IA Calibrada: ${diffSelect.options[diffSelect.selectedIndex].text}`);
-        });
-    }
+    document.getElementById('btn-modal-review').addEventListener('click', () => dialogs.close('game-over-modal'));
+    document.getElementById('btn-modal-restart').addEventListener('click', () => ui.restartGame());
+    document.getElementById('btn-review-results').addEventListener('click', () => ui.openResults());
 
-    // 8. Rules Preset Selector
-    const rulesSelect = document.getElementById('select-rules-preset');
-    if (rulesSelect) {
-        rulesSelect.addEventListener('change', (e) => {
-            engine.ruleMode = e.target.value;
-            ui.restartGame();
-            ui.showWarningToast(`Regras: ${rulesSelect.options[rulesSelect.selectedIndex].text}`);
-        });
-    }
-
-    // 9. Theme Switcher
-    const themeSelect = document.getElementById('select-theme');
-    if (themeSelect) {
-        themeSelect.addEventListener('change', (e) => {
-            document.body.className = `theme-${e.target.value}`;
-            ui.showWarningToast(`Tema Synth: ${themeSelect.options[themeSelect.selectedIndex].text}`);
-        });
-    }
-
-    // 2.1 Granular Volume Sliders
-    const bgmSlider = document.getElementById('slider-bgm-vol');
-    const sfxSlider = document.getElementById('slider-sfx-vol');
-    const bgmValText = document.getElementById('bgm-vol-val');
-    const sfxValText = document.getElementById('sfx-vol-val');
-
-    if (bgmSlider) {
-        bgmSlider.value = Math.round(audio.musicVolume * 100);
-        if (bgmValText) bgmValText.textContent = `${bgmSlider.value}%`;
-        bgmSlider.addEventListener('input', (e) => {
-            const val = parseInt(e.target.value, 10) / 100;
-            audio.setMusicVolume(val);
-            if (bgmValText) bgmValText.textContent = `${e.target.value}%`;
-        });
-    }
-
-    if (sfxSlider) {
-        sfxSlider.value = Math.round(audio.sfxVolume * 100);
-        if (sfxValText) sfxValText.textContent = `${sfxSlider.value}%`;
-        sfxSlider.addEventListener('input', (e) => {
-            const val = parseInt(e.target.value, 10) / 100;
-            audio.setSfxVolume(val);
-            if (sfxValText) sfxValText.textContent = `${e.target.value}%`;
-            audio.playHover();
-        });
-    }
-
-    // 2.2 Combat Log / Move History Drawer Handlers
-    const historyPanel = document.getElementById('history-panel');
-    const historyBackdrop = document.getElementById('history-backdrop');
-    const btnHistory = document.getElementById('btn-history');
-    const btnCloseHistory = document.getElementById('btn-close-history');
-
-    const openHistory = () => {
-        if (historyPanel) historyPanel.classList.add('open');
-        if (historyBackdrop) historyBackdrop.classList.add('open');
-    };
-
-    const closeHistory = () => {
-        if (historyPanel) historyPanel.classList.remove('open');
-        if (historyBackdrop) historyBackdrop.classList.remove('open');
-    };
-
-    if (btnHistory) btnHistory.addEventListener('click', openHistory);
-    if (btnCloseHistory) btnCloseHistory.addEventListener('click', closeHistory);
-    if (historyBackdrop) historyBackdrop.addEventListener('click', closeHistory);
-
-    // 2.3 Post-Match Review Button
-    const btnModalReview = document.getElementById('btn-modal-review');
-    if (btnModalReview) {
-        btnModalReview.addEventListener('click', () => {
-            const modal = document.getElementById('game-over-modal');
-            if (modal) modal.classList.remove('open');
-            ui.showWarningToast('Modo de Análise: Tabuleiro Liberado para Inspeção');
-        });
-    }
-
-    // 10. Hotkeys for Pro Gamers
+    // ------------------------------------------------------------------
+    // Atalhos
+    // ------------------------------------------------------------------
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            closeDrawer();
-            closeRules();
-            closeHistory();
-        } else if (e.key === 'z' || e.key === 'Z') {
-            ui.undoMove();
-        } else if (e.key === 'h' || e.key === 'H') {
-            ui.showHint();
-        } else if (e.key === 'l' || e.key === 'L') {
-            if (historyPanel && historyPanel.classList.contains('open')) {
-                closeHistory();
-            } else {
-                openHistory();
+            if (dialogs.closeTop()) {
+                e.preventDefault();
+                return;
             }
-        } else if (e.key === 'm' || e.key === 'M') {
-            toggleMusicHandler();
-        } else if (e.key === 'r' || e.key === 'R') {
-            ui.restartGame();
+            ui.clearSelection();
+            return;
         }
+        if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+        if (dialogs.anyOpen()) return;
+        if (e.target.matches && e.target.matches('input[type="text"], textarea, select')) return;
+
+        switch (e.key.toLowerCase()) {
+            case 'z': ui.undoMove(); break;
+            case 'h': ui.showHint(); break;
+            case 'l': toggleFeed(); break;
+            case 'm': setMusic(!audio.isMusicPlaying); break;
+            case 'r': requestRestart(); break;
+            case 'v': set3D(!ui.is3D); break;
+            default: return;
+        }
+        e.preventDefault();
     });
 
-    console.log('%c⚡ SYNTHWAVE DAMAS ONLINE v2.6 - PRO UX/UI ⚡', 'color: #00f0ff; font-size: 16px; font-weight: bold; background: #0b0217; padding: 6px 12px; border: 1px solid #ff007f; border-radius: 6px;');
+    syncAudioUI();
+    // Partidas IA vs IA começam sozinhas
+    ui.checkAITurn();
+
+    window.synthGame = { engine, ai, fx, ui, audio };
 });

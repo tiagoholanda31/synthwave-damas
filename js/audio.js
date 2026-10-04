@@ -15,8 +15,8 @@ class SynthwaveAudio {
         this.bpm = 118;
         this.musicInterval = null;
         this.step = 0;
-        this.sfxVolume = parseFloat(localStorage.getItem('synth_damas_sfx_vol') || '0.7');
-        this.musicVolume = parseFloat(localStorage.getItem('synth_damas_bgm_vol') || '0.35');
+        this.sfxVolume = parseFloat(SynthwaveAudio.readStore('synth_damas_sfx_vol', '0.7'));
+        this.musicVolume = parseFloat(SynthwaveAudio.readStore('synth_damas_bgm_vol', '0.35'));
         this.initialized = false;
         this.lastHoverTime = 0;
     }
@@ -55,16 +55,29 @@ class SynthwaveAudio {
         }
     }
 
+    static readStore(key, fallback) {
+        try {
+            const value = localStorage.getItem(key);
+            return value === null ? fallback : value;
+        } catch (_) {
+            return fallback;
+        }
+    }
+
+    static writeStore(key, value) {
+        try {
+            localStorage.setItem(key, String(value));
+        } catch (_) {}
+    }
+
+    // Silencia apenas os efeitos; a trilha segue no próprio barramento.
     setMute(muted) {
         this.isMuted = muted;
-        if (this.masterGain && this.ctx) {
-            this.masterGain.gain.setValueAtTime(muted ? 0 : 1, this.ctx.currentTime);
-        }
     }
 
     setSfxVolume(vol) {
         this.sfxVolume = Math.max(0, Math.min(1, vol));
-        localStorage.setItem('synth_damas_sfx_vol', this.sfxVolume.toString());
+        SynthwaveAudio.writeStore('synth_damas_sfx_vol', this.sfxVolume);
         if (this.sfxGain && this.ctx) {
             this.sfxGain.gain.setTargetAtTime(this.sfxVolume, this.ctx.currentTime, 0.05);
         }
@@ -72,7 +85,7 @@ class SynthwaveAudio {
 
     setMusicVolume(vol) {
         this.musicVolume = Math.max(0, Math.min(1, vol));
-        localStorage.setItem('synth_damas_bgm_vol', this.musicVolume.toString());
+        SynthwaveAudio.writeStore('synth_damas_bgm_vol', this.musicVolume);
         if (this.musicGain && this.ctx) {
             this.musicGain.gain.setTargetAtTime(this.musicVolume, this.ctx.currentTime, 0.05);
         }
@@ -386,7 +399,7 @@ class SynthwaveAudio {
 
         const stepTimeMs = (60 / this.bpm / 4) * 1000; // 16th note interval
         this.musicInterval = setInterval(() => {
-            if (!this.isMusicPlaying || this.isMuted) return;
+            if (!this.isMusicPlaying) return;
             this.tickMusicStep();
         }, stepTimeMs);
     }

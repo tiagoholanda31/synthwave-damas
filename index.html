@@ -2,482 +2,502 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DAMAS SYNTHWAVE - Cyber Neon Premium</title>
-    <!-- Google Fonts: Orbitron (Display/Sci-Fi) & Rajdhani (Technical UI) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#06030d">
+    <meta name="description" content="Damas com regras oficiais brasileiras, IA com minimax e estética synthwave.">
+    <title>Damas Synthwave</title>
+    <!-- Unbounded (marca e números), Geist (interface), Geist Mono (dados e notação) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="theme-outrun">
+    <!-- Sprite de ícones Phosphor (MIT), injetado antes de qualquer <use> -->
+    <script src="js/icons.js"></script>
 
-    <!-- Procedural Particle, Laser & Shockwave Canvas -->
-    <canvas id="fx-canvas"></canvas>
-
-    <!-- Retro Horizon Environment: Glowing Sun, Infinite Neon Grid & Digital Stars -->
-    <div class="synthwave-bg" aria-hidden="true">
-        <div class="synth-stars"></div>
-        <div class="synth-sun"></div>
-        <div class="synth-horizon-glow"></div>
-        <div class="synth-grid"></div>
+    <!-- Cenário: sol, horizonte e grade -->
+    <div class="scene" aria-hidden="true">
+        <div class="scene-stars"></div>
+        <div class="scene-sun"></div>
+        <div class="scene-horizon"></div>
+        <div class="scene-grid"></div>
+        <div class="scene-vignette"></div>
+        <div class="scene-grain"></div>
     </div>
 
-    <!-- Scanline CRT Texture Overlay -->
-    <div class="crt-overlay" aria-hidden="true"></div>
-
-    <!-- Screen Flash Effect for Combos -->
+    <canvas id="fx-canvas" aria-hidden="true"></canvas>
     <div id="screen-flash" class="screen-flash" aria-hidden="true"></div>
 
-    <!-- Main Game Container -->
-    <div class="app-container">
-        
-        <!-- ===================================================================
-             TOP MINIMALIST CYBER HUD
-             =================================================================== -->
-        <header class="top-hud">
-            
-            <!-- Left: Brand Identity -->
-            <div class="hud-brand">
-                <div class="brand-emblem">
-                    <svg viewBox="0 0 24 24" class="brand-hex-icon">
-                        <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" fill="none" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="12" cy="12" r="3.5" fill="currentColor"/>
-                    </svg>
-                </div>
-                <div class="brand-info">
-                    <h1 class="brand-title">DAMAS <span class="accent-text">SYNTHWAVE</span></h1>
-                    <span class="brand-sub">CYBER ARENA 2099</span>
+    <div class="app">
+
+        <!-- =============================================================
+             BARRA SUPERIOR
+             ============================================================= -->
+        <header class="topbar">
+            <div class="brand">
+                <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="bm-sun" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" style="stop-color:var(--gold-hi)"/>
+                            <stop offset=".5" style="stop-color:var(--gold)"/>
+                            <stop offset="1" style="stop-color:var(--p2)"/>
+                        </linearGradient>
+                        <mask id="bm-cut">
+                            <rect width="32" height="32" fill="#fff"/>
+                            <rect y="16" width="32" height="1" fill="#000"/>
+                            <rect y="18" width="32" height="1.3" fill="#000"/>
+                            <rect y="20.2" width="32" height="1.6" fill="#000"/>
+                            <rect y="22.6" width="32" height="10" fill="#000"/>
+                        </mask>
+                    </defs>
+                    <path d="M16 2.5 29.5 16 16 29.5 2.5 16Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                    <circle cx="16" cy="16.5" r="7" fill="url(#bm-sun)" mask="url(#bm-cut)"/>
+                    <path d="M11 24.2h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
+                </svg>
+                <div class="brand-text">
+                    <span class="brand-name">Damas</span>
+                    <span class="brand-tag">Synthwave</span>
                 </div>
             </div>
 
-            <!-- Center: Tactical Match VS HUD (Pure Gameplay Focus) -->
-            <div class="tactical-hud-center">
-                
-                <!-- Player Cyan Pill -->
-                <div id="player-card-cyan" class="tactical-player-card cyan-player active-turn">
-                    <div class="player-avatar-ring">
-                        <span class="disc-dot cyan-disc-dot"></span>
-                    </div>
-                    <div class="tactical-player-info">
-                        <div class="tactical-name-row">
-                            <span class="tactical-name">NEON CYAN</span>
-                            <span class="tactical-turn-tag">VOCÊ</span>
-                        </div>
-                        <div class="tactical-pips-row">
-                            <span class="tactical-stat"><strong id="cyan-pieces-count">12</strong> PEÇAS</span>
-                            <span class="tactical-stat king-stat"><strong id="cyan-kings-count">0</strong> 👑</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Center Dominance & Turn Core -->
-                <div class="match-core-gauge">
-                    <div class="match-status-bar">
-                        <div id="turn-badge" class="turn-badge turn-cyan">SEU TURNO</div>
-                        <div id="ai-thinking-badge" class="ai-thinking-badge">
-                            <span class="thinking-spinner"></span>
-                            <span>IA PROCESSANDO</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Energy Dominance Bar -->
-                    <div class="energy-track" title="Balanço de Poder em Campo">
-                        <div id="dominance-bar-fill" class="energy-fill" style="width: 50%;"></div>
-                        <div class="energy-track-center-mark"></div>
-                    </div>
-
-                    <div class="match-telemetry-micro">
-                        <span class="telemetry-item" title="Tempo Decorrido da Partida">⏱️ <strong id="match-timer-display">00:00</strong></span>
-                        <span class="telemetry-divider">•</span>
-                        <span class="telemetry-item" title="Total de Lances Realizados">LANCES: <strong id="move-counter">0</strong></span>
-                        <span class="telemetry-divider">•</span>
-                        <span class="telemetry-item mode-tag" id="current-mode-tag">PVE TÁTICO</span>
-                        <span class="telemetry-divider">•</span>
-                        <span class="telemetry-item balance-tag" id="material-balance-tag" title="Equilíbrio Material de Peças">= BAL</span>
-                    </div>
-                </div>
-
-                <!-- Player Magenta (AI/P2) Pill -->
-                <div id="player-card-magenta" class="tactical-player-card magenta-player">
-                    <div class="player-avatar-ring">
-                        <span class="disc-dot magenta-disc-dot"></span>
-                    </div>
-                    <div class="tactical-player-info">
-                        <div class="tactical-name-row">
-                            <span class="tactical-name" id="magenta-player-title">SYNTH-IA</span>
-                            <span class="tactical-turn-tag">OPONENTE</span>
-                        </div>
-                        <div class="tactical-pips-row">
-                            <span class="tactical-stat"><strong id="magenta-pieces-count">12</strong> PEÇAS</span>
-                            <span class="tactical-stat king-stat"><strong id="magenta-kings-count">0</strong> 👑</span>
-                        </div>
-                    </div>
-                </div>
-
+            <div id="turn-status" class="turn-status side-cyan">
+                <span class="turn-dot" aria-hidden="true"></span>
+                <span class="turn-text" role="status" aria-live="polite">
+                    <span id="turn-label" class="turn-label">Sua vez</span>
+                    <span id="turn-sub" class="turn-sub">Peças ciano</span>
+                </span>
+                <span class="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                <button id="btn-review-results" class="status-action" type="button" hidden>Ver resultado</button>
             </div>
 
-            <!-- Right: Quick Header Controls -->
-            <div class="hud-quick-actions">
-                <button id="btn-toggle-music" class="icon-hud-btn" title="Alternar Trilha Sonora Synthwave [M]" aria-label="Música">
-                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M4.27 3L3 4.27l9 9v.28c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4v-1.73l4.27 4.27L19 17.73 4.27 3zM14 7h4V3h-6v5.18l2 2V7z" fill="currentColor"/></svg>
-                    <span class="btn-micro-label">BGM</span>
+            <div class="toolbar" role="toolbar" aria-label="Controles rápidos">
+                <button id="btn-toggle-music" class="tool-btn" type="button" aria-pressed="false" title="Trilha sonora (M)">
+                    <svg class="icon" aria-hidden="true"><use href="#i-music"/></svg>
+                    <span class="sr-only">Trilha sonora</span>
                 </button>
-                <button id="btn-toggle-sfx" class="icon-hud-btn active" title="Alternar Efeitos Sonoros Neon" aria-label="Efeitos Sonoros">
-                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" fill="currentColor"/></svg>
-                    <span class="btn-micro-label">SFX</span>
+                <button id="btn-toggle-sfx" class="tool-btn" type="button" aria-pressed="true" title="Efeitos sonoros">
+                    <svg class="icon" aria-hidden="true"><use href="#i-speaker"/></svg>
+                    <span class="sr-only">Efeitos sonoros</span>
                 </button>
-                <button id="btn-toggle-3d" class="icon-hud-btn active" title="Alternar Câmera 3D Cyber / 2D Plano" aria-label="Visão 3D">
-                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-                    <span class="btn-micro-label">3D</span>
+                <button id="btn-toggle-3d" class="tool-btn" type="button" aria-pressed="true" title="Visão 3D (V)">
+                    <svg class="icon" aria-hidden="true"><use href="#i-perspective"/></svg>
+                    <span class="sr-only">Visão 3D</span>
                 </button>
-                <button id="btn-open-drawer" class="icon-hud-btn drawer-trigger-btn" title="Configurações & Matrix [Esc]" aria-label="Menu Matrix">
-                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="currentColor"/></svg>
-                    <span class="btn-micro-label">MENU</span>
+                <button id="btn-open-drawer" class="tool-btn" type="button" aria-haspopup="dialog" aria-controls="matrix-drawer" title="Ajustes">
+                    <svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg>
+                    <span class="sr-only">Ajustes</span>
                 </button>
             </div>
         </header>
 
-        <!-- ===================================================================
-             MAIN ARENA: HERO BOARD (Expansive & Uncluttered)
-             =================================================================== -->
-        <main class="arena-container">
-            <div id="board-wrapper" class="board-wrapper perspective-3d">
-                
-                <!-- Cyber Decorative Corner Brackets & Outer Holographic Coordinates -->
-                <div class="board-cyber-frame" aria-hidden="true">
-                    <span class="frame-corner corner-tl"></span>
-                    <span class="frame-corner corner-tr"></span>
-                    <span class="frame-corner corner-bl"></span>
-                    <span class="frame-corner corner-br"></span>
-                    
-                    <!-- Outer Coordinate Rails (A-H & 1-8) -->
-                    <div class="coord-rail coord-rail-top" id="coord-rail-top">
-                        <span data-file="0">A</span><span data-file="1">B</span><span data-file="2">C</span><span data-file="3">D</span>
-                        <span data-file="4">E</span><span data-file="5">F</span><span data-file="6">G</span><span data-file="7">H</span>
-                    </div>
-                    <div class="coord-rail coord-rail-bottom" id="coord-rail-bottom">
-                        <span data-file="0">A</span><span data-file="1">B</span><span data-file="2">C</span><span data-file="3">D</span>
-                        <span data-file="4">E</span><span data-file="5">F</span><span data-file="6">G</span><span data-file="7">H</span>
-                    </div>
-                    <div class="coord-rail coord-rail-left" id="coord-rail-left">
-                        <span data-rank="0">8</span><span data-rank="1">7</span><span data-rank="2">6</span><span data-rank="3">5</span>
-                        <span data-rank="4">4</span><span data-rank="5">3</span><span data-rank="6">2</span><span data-rank="7">1</span>
-                    </div>
-                    <div class="coord-rail coord-rail-right" id="coord-rail-right">
-                        <span data-rank="0">8</span><span data-rank="1">7</span><span data-rank="2">6</span><span data-rank="3">5</span>
-                        <span data-rank="4">4</span><span data-rank="5">3</span><span data-rank="6">2</span><span data-rank="7">1</span>
-                    </div>
+        <!-- =============================================================
+             ARENA: jogadores | tabuleiro | lances
+             ============================================================= -->
+        <div class="arena">
 
-                    <div class="board-ambient-underglow"></div>
-                </div>
+            <div class="side-left">
+                <section id="panel-magenta" class="player-panel side-magenta" aria-label="Oponente">
+                    <span class="pp-avatar" aria-hidden="true">
+                        <svg class="icon"><use id="avatar-magenta" href="#i-cpu"/></svg>
+                    </span>
+                    <div class="pp-body">
+                        <div class="pp-head">
+                            <span id="magenta-player-title" class="pp-name">Synth-IA</span>
+                            <span id="magenta-player-role" class="pp-role">Tático</span>
+                        </div>
+                        <div id="pips-magenta" class="pp-pips" aria-hidden="true"></div>
+                    </div>
+                    <div class="pp-score">
+                        <span class="pp-count" title="Peças em jogo"><b id="magenta-pieces-count">12</b><span class="sr-only"> peças</span></span>
+                        <span class="pp-kings" title="Damas">
+                            <svg class="icon" aria-hidden="true"><use href="#i-crown"/></svg>
+                            <b id="magenta-kings-count">0</b><span class="sr-only"> damas</span>
+                        </span>
+                    </div>
+                </section>
 
-                <!-- 8x8 Checkers Grid -->
-                <div id="checkers-board" class="checkers-board">
-                    <!-- Populated dynamically by js/ui.js -->
-                </div>
+                <section class="match-card" aria-label="Resumo da partida">
+                    <div class="eval">
+                        <div class="eval-head">
+                            <span class="eval-key">Vantagem</span>
+                            <span id="eval-value" class="eval-value">Equilíbrio</span>
+                        </div>
+                        <div id="eval-meter" class="eval-track" role="meter" aria-label="Vantagem do ciano" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+                            <span id="dominance-bar-fill" class="eval-fill"></span>
+                            <span class="eval-mid" aria-hidden="true"></span>
+                        </div>
+                    </div>
+                    <dl class="match-facts">
+                        <div class="fact">
+                            <dt><svg class="icon" aria-hidden="true"><use href="#i-timer"/></svg>Tempo</dt>
+                            <dd id="match-timer-display">00:00</dd>
+                        </div>
+                        <div class="fact">
+                            <dt><svg class="icon" aria-hidden="true"><use href="#i-footprints"/></svg>Lances</dt>
+                            <dd id="move-counter">0</dd>
+                        </div>
+                        <div class="fact fact-mode">
+                            <dt><svg class="icon" aria-hidden="true"><use href="#i-game"/></svg>Modo</dt>
+                            <dd id="current-mode-tag">Contra IA</dd>
+                        </div>
+                    </dl>
+                    <p id="draw-watch" class="draw-watch" hidden>
+                        <svg class="icon" aria-hidden="true"><use href="#i-hourglass"/></svg>
+                        <span id="draw-watch-text">Empate em 20 lances</span>
+                    </p>
+                </section>
+
+                <section id="panel-cyan" class="player-panel side-cyan" aria-label="Você">
+                    <span class="pp-avatar" aria-hidden="true">
+                        <svg class="icon"><use id="avatar-cyan" href="#i-user"/></svg>
+                    </span>
+                    <div class="pp-body">
+                        <div class="pp-head">
+                            <span id="cyan-player-title" class="pp-name">Você</span>
+                            <span id="cyan-player-role" class="pp-role">Ciano</span>
+                        </div>
+                        <div id="pips-cyan" class="pp-pips" aria-hidden="true"></div>
+                    </div>
+                    <div class="pp-score">
+                        <span class="pp-count" title="Peças em jogo"><b id="cyan-pieces-count">12</b><span class="sr-only"> peças</span></span>
+                        <span class="pp-kings" title="Damas">
+                            <svg class="icon" aria-hidden="true"><use href="#i-crown"/></svg>
+                            <b id="cyan-kings-count">0</b><span class="sr-only"> damas</span>
+                        </span>
+                    </div>
+                </section>
             </div>
-        </main>
 
-        <!-- ===================================================================
-             BOTTOM FLOATING ACTION DOCK (Discreet, Ergonomic & Gameplay-Centric)
-             =================================================================== -->
-        <nav class="bottom-action-dock" aria-label="Comandos Rápidos">
-            <button id="btn-undo" class="dock-btn" title="Desfazer Última Jogada (Atalho: Z)">
-                <span class="dock-btn-icon">↩</span>
-                <span class="dock-btn-text">Desfazer</span>
-                <kbd class="dock-key">Z</kbd>
+            <main id="board-stage" class="stage">
+                <div id="board-wrapper" class="board-wrapper perspective-3d">
+                    <div class="board-bezel" aria-hidden="true">
+                        <div class="coord-rail coord-rail-top" id="coord-rail-top">
+                            <span data-file="0">a</span><span data-file="1">b</span><span data-file="2">c</span><span data-file="3">d</span>
+                            <span data-file="4">e</span><span data-file="5">f</span><span data-file="6">g</span><span data-file="7">h</span>
+                        </div>
+                        <div class="coord-rail coord-rail-bottom" id="coord-rail-bottom">
+                            <span data-file="0">a</span><span data-file="1">b</span><span data-file="2">c</span><span data-file="3">d</span>
+                            <span data-file="4">e</span><span data-file="5">f</span><span data-file="6">g</span><span data-file="7">h</span>
+                        </div>
+                        <div class="coord-rail coord-rail-left" id="coord-rail-left">
+                            <span data-rank="0">8</span><span data-rank="1">7</span><span data-rank="2">6</span><span data-rank="3">5</span>
+                            <span data-rank="4">4</span><span data-rank="5">3</span><span data-rank="6">2</span><span data-rank="7">1</span>
+                        </div>
+                        <div class="coord-rail coord-rail-right" id="coord-rail-right">
+                            <span data-rank="0">8</span><span data-rank="1">7</span><span data-rank="2">6</span><span data-rank="3">5</span>
+                            <span data-rank="4">4</span><span data-rank="5">3</span><span data-rank="6">2</span><span data-rank="7">1</span>
+                        </div>
+                    </div>
+                    <!-- 8x8, montado por js/ui.js -->
+                    <div id="checkers-board" class="checkers-board" role="group" aria-label="Tabuleiro de damas. Use as setas para navegar e Enter para jogar."></div>
+                </div>
+            </main>
+
+            <aside id="history-panel" class="feed-panel" aria-labelledby="feed-title">
+                <header class="feed-head">
+                    <h2 id="feed-title" class="feed-title">
+                        <svg class="icon" aria-hidden="true"><use href="#i-feed"/></svg>
+                        Lances
+                    </h2>
+                    <button id="btn-close-history" class="icon-btn feed-close" type="button" aria-label="Fechar lances">
+                        <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>
+                    </button>
+                </header>
+                <div class="feed-stats">
+                    <div class="feed-stat">
+                        <span class="feed-stat-key">Lances</span>
+                        <span id="history-total-moves" class="feed-stat-val">0</span>
+                    </div>
+                    <div class="feed-stat">
+                        <span class="feed-stat-key">Capturas</span>
+                        <span id="history-captures" class="feed-stat-val">
+                            <span class="tone-cyan">0</span><span class="feed-sep">·</span><span class="tone-magenta">0</span>
+                        </span>
+                    </div>
+                    <div class="feed-stat">
+                        <span class="feed-stat-key">Maior combo</span>
+                        <span id="history-max-combo" class="feed-stat-val">—</span>
+                    </div>
+                </div>
+                <ol id="history-moves-list" class="feed-list"></ol>
+                <p id="history-empty" class="feed-empty">Nenhum lance ainda. Clique numa peça para ver os destinos, ou arraste direto.</p>
+            </aside>
+        </div>
+
+        <!-- =============================================================
+             DOCK DE AÇÕES
+             ============================================================= -->
+        <nav class="dock" aria-label="Ações da partida">
+            <button id="btn-undo" class="dock-btn" type="button" title="Desfazer (Z)">
+                <svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg>
+                <span class="dock-label">Desfazer</span>
+                <kbd>Z</kbd>
             </button>
-            <div class="dock-separator"></div>
-            <button id="btn-hint" class="dock-btn" title="Sugerir Melhor Jogada (Atalho: H)">
-                <span class="dock-btn-icon">💡</span>
-                <span class="dock-btn-text">Dica Tática</span>
-                <kbd class="dock-key">H</kbd>
+            <button id="btn-hint" class="dock-btn" type="button" title="Dica (H)">
+                <svg class="icon" aria-hidden="true"><use href="#i-hint"/></svg>
+                <span class="dock-label">Dica</span>
+                <kbd>H</kbd>
             </button>
-            <div class="dock-separator"></div>
-            <button id="btn-restart" class="dock-btn" title="Reiniciar Partida">
-                <span class="dock-btn-icon">🔄</span>
-                <span class="dock-btn-text">Novo Jogo</span>
-                <kbd class="dock-key">R</kbd>
+            <button id="btn-restart" class="dock-btn" type="button" title="Nova partida (R)">
+                <svg class="icon" aria-hidden="true"><use href="#i-restart"/></svg>
+                <span class="dock-label">Nova partida</span>
+                <kbd>R</kbd>
             </button>
-            <div class="dock-separator"></div>
-            <button id="btn-history" class="dock-btn" title="Feed Tático & Histórico de Lances (Atalho: L)">
-                <span class="dock-btn-icon">📜</span>
-                <span class="dock-btn-text">Feed Tático</span>
-                <kbd class="dock-key">L</kbd>
+            <button id="btn-history" class="dock-btn dock-feed" type="button" aria-controls="history-panel" title="Lances (L)">
+                <svg class="icon" aria-hidden="true"><use href="#i-feed"/></svg>
+                <span class="dock-label">Lances</span>
+                <kbd>L</kbd>
             </button>
-            <div class="dock-separator"></div>
-            <button id="btn-rules" class="dock-btn" title="Regras Oficiais">
-                <span class="dock-btn-icon">📋</span>
-                <span class="dock-btn-text">Regras</span>
+            <button id="btn-rules" class="dock-btn" type="button" aria-haspopup="dialog" title="Regras">
+                <svg class="icon" aria-hidden="true"><use href="#i-rules"/></svg>
+                <span class="dock-label">Regras</span>
             </button>
         </nav>
-
     </div>
 
-    <!-- ===================================================================
-         DISCREET SLIDE-OVER MATRIX DRAWER (Menu Discreto & Configurações)
-         =================================================================== -->
-    <div id="matrix-drawer-backdrop" class="drawer-backdrop"></div>
-    <aside id="matrix-drawer" class="matrix-drawer" aria-label="Painel de Configurações da Matrix">
-        
-        <div class="drawer-header">
-            <div class="drawer-header-title">
-                <span class="cyber-glyph">❖</span>
-                <h2>CONFIGURAÇÕES DA MATRIX</h2>
-            </div>
-            <button id="btn-close-drawer" class="drawer-close-btn" aria-label="Fechar Menu">&times;</button>
-        </div>
+    <!-- =============================================================
+         AJUSTES (gaveta lateral)
+         ============================================================= -->
+    <div id="drawer-backdrop" class="backdrop"></div>
+    <aside id="matrix-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" tabindex="-1">
+        <header class="drawer-head">
+            <h2 id="drawer-title" class="drawer-title">Ajustes</h2>
+            <button id="btn-close-drawer" class="icon-btn" type="button" aria-label="Fechar ajustes">
+                <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>
+            </button>
+        </header>
 
         <div class="drawer-body">
-            
-            <!-- Player Progression Card -->
-            <section class="drawer-section">
-                <div class="section-label">
-                    <span class="section-icon">🏆</span> PROGRESSÃO & PATENTE
+            <section class="d-section">
+                <h3 class="d-title"><svg class="icon" aria-hidden="true"><use href="#i-medal"/></svg>Progressão</h3>
+                <div class="rank-card">
+                    <span class="rank-emblem" aria-hidden="true">
+                        <svg class="icon"><use href="#i-crown"/></svg>
+                    </span>
+                    <div class="rank-info">
+                        <span id="player-rank-title" class="rank-title">Iniciado Neon</span>
+                        <span id="player-xp-val" class="rank-level">Nível 1 · 0/150 XP</span>
+                        <div class="xp-track"><span id="player-xp-bar" class="xp-fill"></span></div>
+                    </div>
                 </div>
-                <div class="xp-mini-card">
-                    <div class="xp-meta-row">
-                        <span id="player-rank-title" class="rank-badge">Iniciado Neon</span>
-                        <span id="player-xp-val" class="xp-counter">Nível 1 (0/150 XP)</span>
-                    </div>
-                    <div class="xp-progress-track">
-                        <div id="player-xp-bar" class="xp-progress-fill" style="width: 0%;"></div>
-                    </div>
+                <div class="rank-stats">
+                    <div class="rank-stat"><span id="stat-total-wins" class="rank-stat-val">0</span><span class="rank-stat-key">Vitórias</span></div>
+                    <div class="rank-stat"><span id="stat-streak" class="rank-stat-val">0</span><span class="rank-stat-key">Sequência</span></div>
+                    <div class="rank-stat"><span id="stat-level" class="rank-stat-val">1</span><span class="rank-stat-key">Nível</span></div>
                 </div>
             </section>
 
-            <!-- Gameplay Customization -->
-            <section class="drawer-section">
-                <div class="section-label">
-                    <span class="section-icon">⚙️</span> PARÂMETROS DA PARTIDA
-                </div>
-                
-                <div class="setting-field">
-                    <label for="select-game-mode" class="field-label">MODO DE COMBATE</label>
-                    <div class="cyber-select-wrapper">
-                        <select id="select-game-mode" class="cyber-select">
-                            <option value="pve" selected>Jogador vs Synth-IA</option>
-                            <option value="pvp">2 Jogadores (Local Pass & Play)</option>
-                            <option value="eve">IA vs IA (Modo Espectador)</option>
-                        </select>
-                    </div>
-                </div>
+            <section class="d-section">
+                <h3 class="d-title"><svg class="icon" aria-hidden="true"><use href="#i-game"/></svg>Partida</h3>
 
-                <div class="setting-field">
-                    <label for="select-ai-diff" class="field-label">DIFICULDADE DA IA</label>
-                    <div class="cyber-select-wrapper">
-                        <select id="select-ai-diff" class="cyber-select">
-                            <option value="novice">Novato (Casual)</option>
-                            <option value="tactical" selected>Tático (Intermediário)</option>
-                            <option value="master">Cyber Mestre (Minimax Alpha-Beta)</option>
-                        </select>
+                <fieldset class="field">
+                    <legend class="field-label">Modo de jogo</legend>
+                    <div class="segmented">
+                        <label class="seg"><input type="radio" name="game-mode" value="pve" checked><span class="seg-face"><svg class="icon" aria-hidden="true"><use href="#i-cpu"/></svg>Contra IA</span></label>
+                        <label class="seg"><input type="radio" name="game-mode" value="pvp"><span class="seg-face"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>2 jogadores</span></label>
+                        <label class="seg"><input type="radio" name="game-mode" value="eve"><span class="seg-face"><svg class="icon" aria-hidden="true"><use href="#i-robot"/></svg>IA vs IA</span></label>
                     </div>
-                </div>
+                </fieldset>
 
-                <div class="setting-field">
-                    <label for="select-rules-preset" class="field-label">REGRAS DE DAMAS</label>
-                    <div class="cyber-select-wrapper">
-                        <select id="select-rules-preset" class="cyber-select">
-                            <option value="brazilian" selected>Regra Brasileira Oficial (Dama Voadora + Maioria)</option>
-                            <option value="casual">Regra Casual / Padrão</option>
-                        </select>
+                <fieldset class="field" id="field-difficulty">
+                    <legend class="field-label">Dificuldade da IA</legend>
+                    <div class="segmented">
+                        <label class="seg"><input type="radio" name="ai-diff" value="novice"><span class="seg-face">Novato</span></label>
+                        <label class="seg"><input type="radio" name="ai-diff" value="tactical" checked><span class="seg-face">Tático</span></label>
+                        <label class="seg"><input type="radio" name="ai-diff" value="master"><span class="seg-face">Mestre</span></label>
                     </div>
-                </div>
+                    <p id="difficulty-help" class="field-help">Calcula 3 lances à frente.</p>
+                </fieldset>
 
-                <div class="setting-field">
-                    <label for="select-theme" class="field-label">TEMA VISUAL SYNTH</label>
-                    <div class="cyber-select-wrapper">
-                        <select id="select-theme" class="cyber-select">
-                            <option value="outrun" selected>Outrun Sunset (Cyan & Magenta)</option>
-                            <option value="cyberpunk">Cyberpunk 2099 (Toxic Green & Amber)</option>
-                            <option value="laser">Laser Retrowave (Electric Blue & Crimson)</option>
-                        </select>
+                <fieldset class="field">
+                    <legend class="field-label">Regras</legend>
+                    <div class="segmented">
+                        <label class="seg"><input type="radio" name="rules" value="brazilian" checked><span class="seg-face">Brasileira</span></label>
+                        <label class="seg"><input type="radio" name="rules" value="casual"><span class="seg-face">Casual</span></label>
                     </div>
-                </div>
+                    <p id="rules-help" class="field-help">Dama voadora, captura para trás e lei da maioria.</p>
+                </fieldset>
             </section>
 
-            <!-- Audio & Immersion Controls -->
-            <section class="drawer-section">
-                <div class="section-label">
-                    <span class="section-icon">🔊</span> ÁUDIO & SÍNTESE 80s
-                </div>
-                <div class="audio-switch-grid">
-                    <button id="drawer-btn-music" class="drawer-action-pill">
-                        <span>🎵 Trilha Procedural</span>
-                        <span class="pill-status" id="drawer-music-status">OFF</span>
-                    </button>
-                    <button id="drawer-btn-sfx" class="drawer-action-pill active">
-                        <span>💥 Efeitos Sonoros</span>
-                        <span class="pill-status" id="drawer-sfx-status">ON</span>
-                    </button>
-                </div>
-
-                <!-- Granular Volume Sliders -->
-                <div class="audio-slider-group">
-                    <div class="slider-row">
-                        <span class="slider-label">Volume Trilha Synth (BGM)</span>
-                        <span class="slider-val" id="bgm-vol-val">35%</span>
-                    </div>
-                    <input type="range" id="slider-bgm-vol" class="cyber-slider" min="0" max="100" value="35" aria-label="Volume da Música">
-                </div>
-                <div class="audio-slider-group">
-                    <div class="slider-row">
-                        <span class="slider-label">Volume Efeitos Neon (SFX)</span>
-                        <span class="slider-val" id="sfx-vol-val">70%</span>
-                    </div>
-                    <input type="range" id="slider-sfx-vol" class="cyber-slider" min="0" max="100" value="70" aria-label="Volume dos Efeitos">
-                </div>
-
-                <div class="setting-toggle-row">
-                    <label for="toggle-haptic" class="toggle-label">
-                        <span>📳 Vibração Tátil (Haptic Feedback)</span>
+            <section class="d-section">
+                <h3 class="d-title"><svg class="icon" aria-hidden="true"><use href="#i-palette"/></svg>Aparência</h3>
+                <div class="theme-grid">
+                    <label class="theme-opt">
+                        <input type="radio" name="theme" value="outrun" checked>
+                        <span class="theme-card">
+                            <span class="theme-swatch"><i style="--c:#3ee8ff"></i><i style="--c:#ff4fa3"></i></span>
+                            <span class="theme-name">Outrun</span>
+                        </span>
                     </label>
-                    <input type="checkbox" id="toggle-haptic" class="cyber-switch" checked>
+                    <label class="theme-opt">
+                        <input type="radio" name="theme" value="cyberpunk">
+                        <span class="theme-card">
+                            <span class="theme-swatch"><i style="--c:#6dffa8"></i><i style="--c:#ffb547"></i></span>
+                            <span class="theme-name">Cyberpunk</span>
+                        </span>
+                    </label>
+                    <label class="theme-opt">
+                        <input type="radio" name="theme" value="laser">
+                        <span class="theme-card">
+                            <span class="theme-swatch"><i style="--c:#5aa9ff"></i><i style="--c:#ff3b5c"></i></span>
+                            <span class="theme-name">Laser</span>
+                        </span>
+                    </label>
                 </div>
+                <label class="switch-row">
+                    <span class="switch-text"><svg class="icon" aria-hidden="true"><use href="#i-perspective"/></svg>Tabuleiro em perspectiva 3D</span>
+                    <input id="toggle-3d-setting" class="switch" type="checkbox" role="switch" checked>
+                </label>
             </section>
 
-            <!-- Hotkeys Quick Guide -->
-            <section class="drawer-section">
-                <div class="section-label">
-                    <span class="section-icon">⌨️</span> ATALHOS RÁPIDOS
+            <section class="d-section">
+                <h3 class="d-title"><svg class="icon" aria-hidden="true"><use href="#i-speaker"/></svg>Som e toque</h3>
+                <div class="audio-block">
+                    <label class="switch-row">
+                        <span class="switch-text"><svg class="icon" aria-hidden="true"><use href="#i-music"/></svg>Trilha sonora</span>
+                        <input id="toggle-music" class="switch" type="checkbox" role="switch">
+                    </label>
+                    <div class="slider-row">
+                        <input id="slider-bgm-vol" class="slider" type="range" min="0" max="100" value="35" aria-label="Volume da trilha">
+                        <output id="bgm-vol-val" class="slider-val" for="slider-bgm-vol">35%</output>
+                    </div>
                 </div>
-                <div class="hotkeys-list">
-                    <div class="hotkey-item"><kbd>Z</kbd> <span>Desfazer jogada</span></div>
-                    <div class="hotkey-item"><kbd>H</kbd> <span>Sugerir dica tática</span></div>
-                    <div class="hotkey-item"><kbd>L</kbd> <span>Feed tático de lances</span></div>
-                    <div class="hotkey-item"><kbd>M</kbd> <span>Alternar música synthwave</span></div>
-                    <div class="hotkey-item"><kbd>R</kbd> <span>Reiniciar partida</span></div>
+                <div class="audio-block">
+                    <label class="switch-row">
+                        <span class="switch-text"><svg class="icon" aria-hidden="true"><use href="#i-speaker"/></svg>Efeitos sonoros</span>
+                        <input id="toggle-sfx" class="switch" type="checkbox" role="switch" checked>
+                    </label>
+                    <div class="slider-row">
+                        <input id="slider-sfx-vol" class="slider" type="range" min="0" max="100" value="70" aria-label="Volume dos efeitos">
+                        <output id="sfx-vol-val" class="slider-val" for="slider-sfx-vol">70%</output>
+                    </div>
                 </div>
+                <label class="switch-row">
+                    <span class="switch-text"><svg class="icon" aria-hidden="true"><use href="#i-vibrate"/></svg>Vibração no celular</span>
+                    <input id="toggle-haptic" class="switch" type="checkbox" role="switch" checked>
+                </label>
             </section>
 
-        </div>
-
-        <div class="drawer-footer">
-            <span class="cyber-footer-note">SYNTHWAVE DAMAS v2.5 • CYBER ENGINE</span>
-        </div>
-    </aside>
-
-    <!-- ===================================================================
-         COMBAT LOG / MOVE HISTORY PANEL (Feed Tático Deslizante)
-         =================================================================== -->
-    <div id="history-backdrop" class="drawer-backdrop"></div>
-    <aside id="history-panel" class="history-panel" aria-label="Feed Tático & Histórico de Lances">
-        <div class="history-header">
-            <div class="history-title">
-                <span class="cyber-glyph">📜</span>
-                <h2>FEED TÁTICO</h2>
-            </div>
-            <button id="btn-close-history" class="drawer-close-btn" aria-label="Fechar Histórico">&times;</button>
-        </div>
-        <div class="history-telemetry-banner">
-            <div class="history-stat-mini">
-                <span class="stat-mini-label">TOTAL LANCES</span>
-                <span class="stat-mini-val" id="history-total-moves">0</span>
-            </div>
-            <div class="history-stat-mini">
-                <span class="stat-mini-label">MAIOR COMBO</span>
-                <span class="stat-mini-val" id="history-max-combo">--</span>
-            </div>
-            <div class="history-stat-mini">
-                <span class="stat-mini-label">STATUS</span>
-                <span class="stat-mini-val status-live">EM DISPUTA</span>
-            </div>
-        </div>
-        <div class="history-body" id="history-moves-list">
-            <div class="history-empty">Nenhum lance executado ainda. Mova uma peça para registrar o feed.</div>
-        </div>
-    </aside>
-
-    <!-- ===================================================================
-         RULES MODAL
-         =================================================================== -->
-    <div id="rules-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h2 id="rules-modal-title" class="modal-title win-title">⚡ REGRAS OFICIAIS DE DAMAS</h2>
-                <button id="btn-close-rules" class="modal-close-btn" aria-label="Fechar">&times;</button>
-            </div>
-            <div class="modal-body">
-                <ul class="rules-list">
-                    <li><strong>Casas Escuras:</strong> O jogo é disputado nas 32 casas escuras do tabuleiro 8x8. Cada jogador inicia com 12 peças.</li>
-                    <li><strong>Avanço Simples:</strong> Peças comuns avançam 1 casa em diagonal para frente.</li>
-                    <li><strong>Captura para Frente e para Trás:</strong> Na regra oficial brasileira, peças comuns capturam saltando sobre o adversário tanto para frente quanto para trás!</li>
-                    <li><strong>Lei da Maioria:</strong> Havendo múltiplas opções de captura, é obrigatório optar pela linha que capture o MAIOR número de peças.</li>
-                    <li><strong>Dama Voadora:</strong> Ao atingir a última linha inimiga, a peça vira Dama, podendo voar longas distâncias nas 4 diagonais e capturar de longe!</li>
-                    <li><strong>Combos & Multiplicadores:</strong> Capturas em cadeia geram bônus de XP, shockwaves neon e multiplicadores de combo!</li>
+            <section class="d-section">
+                <h3 class="d-title"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>Atalhos</h3>
+                <ul class="hotkeys">
+                    <li><kbd>Z</kbd>Desfazer</li>
+                    <li><kbd>H</kbd>Dica</li>
+                    <li><kbd>R</kbd>Nova partida</li>
+                    <li><kbd>L</kbd>Lances</li>
+                    <li><kbd>M</kbd>Trilha sonora</li>
+                    <li><kbd>V</kbd>Visão 3D</li>
+                    <li><kbd>Setas</kbd>Navegar no tabuleiro</li>
+                    <li><kbd>Enter</kbd>Selecionar e jogar</li>
                 </ul>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-primary" id="btn-rules-ack">ENTENDIDO</button>
-            </div>
+            </section>
+        </div>
+
+        <footer class="drawer-foot">Damas Synthwave 3.0 · ícones Phosphor</footer>
+    </aside>
+
+    <!-- =============================================================
+         REGRAS
+         ============================================================= -->
+    <div id="rules-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
+        <div class="modal-card rules-card">
+            <header class="modal-head">
+                <h2 id="rules-modal-title" class="modal-title">Regras oficiais</h2>
+                <button id="btn-close-rules" class="icon-btn" type="button" aria-label="Fechar regras">
+                    <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>
+                </button>
+            </header>
+            <ul class="rules-list">
+                <li>
+                    <span class="rule-icon"><svg class="icon" aria-hidden="true"><use href="#i-perspective"/></svg></span>
+                    <div><strong>Casas escuras.</strong> O jogo acontece nas 32 casas escuras do tabuleiro 8×8. Cada lado começa com 12 pedras e as peças de baixo abrem a partida.</div>
+                </li>
+                <li>
+                    <span class="rule-icon"><svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg></span>
+                    <div><strong>Avanço.</strong> A pedra anda uma casa na diagonal, sempre para frente.</div>
+                </li>
+                <li>
+                    <span class="rule-icon"><svg class="icon" aria-hidden="true"><use href="#i-sword"/></svg></span>
+                    <div><strong>Captura obrigatória.</strong> Se houver captura, ela é obrigatória. Na regra brasileira a pedra captura para frente e para trás.</div>
+                </li>
+                <li>
+                    <span class="rule-icon"><svg class="icon" aria-hidden="true"><use href="#i-scales"/></svg></span>
+                    <div><strong>Lei da maioria.</strong> Com mais de uma captura possível, vale a sequência que tira mais peças.</div>
+                </li>
+                <li>
+                    <span class="rule-icon rule-gold"><svg class="icon" aria-hidden="true"><use href="#i-crown"/></svg></span>
+                    <div><strong>Dama voadora.</strong> A pedra que chega à última linha vira dama e anda quantas casas quiser nas quatro diagonais, capturando de longe.</div>
+                </li>
+                <li>
+                    <span class="rule-icon"><svg class="icon" aria-hidden="true"><use href="#i-hourglass"/></svg></span>
+                    <div><strong>Empate.</strong> Depois de 20 lances de cada lado só com damas, sem captura e sem mover pedra, a partida termina empatada.</div>
+                </li>
+            </ul>
+            <footer class="modal-actions">
+                <button id="btn-rules-ack" class="btn btn-primary" type="button">Entendi</button>
+            </footer>
         </div>
     </div>
 
-    <!-- ===================================================================
-         GAME OVER / MATCH PERFORMANCE REPORT MODAL
-         =================================================================== -->
-    <div id="game-over-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
-        <div class="modal-card game-over-card">
-            <div class="game-over-hologram">
-                <div class="hologram-ring"></div>
-                <div id="game-over-emblem" class="game-over-emblem">👑</div>
+    <!-- =============================================================
+         RESULTADO DA PARTIDA
+         ============================================================= -->
+    <div id="game-over-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="game-over-title" aria-describedby="game-over-desc">
+        <div id="game-over-card" class="modal-card result-card" data-outcome="win">
+            <div class="result-emblem" aria-hidden="true">
+                <span class="result-halo"></span>
+                <svg class="icon"><use id="game-over-emblem" href="#i-trophy"/></svg>
             </div>
-            <div class="modal-header modal-center-header">
-                <span id="game-over-tag" class="match-badge">VITÓRIA TÁTICA</span>
-                <h2 id="game-over-title" class="modal-title win-title">VITÓRIA GLORIOSA!</h2>
+            <span id="game-over-tag" class="result-tag">Vitória</span>
+            <h2 id="game-over-title" class="result-title">Você venceu</h2>
+            <p id="game-over-desc" class="result-desc">Você superou a Synth-IA.</p>
+
+            <div class="result-stats">
+                <div class="r-stat"><svg class="icon" aria-hidden="true"><use href="#i-timer"/></svg><span id="stat-match-time" class="r-val">00:00</span><span class="r-key">Duração</span></div>
+                <div class="r-stat"><svg class="icon" aria-hidden="true"><use href="#i-footprints"/></svg><span id="stat-match-moves" class="r-val">0</span><span class="r-key">Lances</span></div>
+                <div class="r-stat"><svg class="icon" aria-hidden="true"><use href="#i-sword"/></svg><span id="stat-match-captures" class="r-val">0</span><span class="r-key">Capturas</span></div>
+                <div class="r-stat"><svg class="icon" aria-hidden="true"><use href="#i-lightning"/></svg><span id="stat-match-combo" class="r-val">—</span><span class="r-key">Maior combo</span></div>
+                <div class="r-stat"><svg class="icon" aria-hidden="true"><use href="#i-crown"/></svg><span id="stat-match-kings" class="r-val">0</span><span class="r-key">Damas</span></div>
+                <div class="r-stat r-xp"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"/></svg><span id="stat-match-xp" class="r-val">+0</span><span class="r-key">XP</span></div>
             </div>
-            <div class="modal-body modal-center-body">
-                <p id="game-over-desc">Você dominou a Matrix e superou a inteligência artificial!</p>
-                
-                <!-- Match Performance Telemetry Grid -->
-                <div class="match-stats-grid">
-                    <div class="stat-pill-box">
-                        <span class="stat-pill-icon">⏱️</span>
-                        <span class="stat-pill-val" id="stat-match-time">00:00</span>
-                        <span class="stat-pill-lbl">DURAÇÃO</span>
-                    </div>
-                    <div class="stat-pill-box">
-                        <span class="stat-pill-icon">♟️</span>
-                        <span class="stat-pill-val" id="stat-match-moves">0</span>
-                        <span class="stat-pill-lbl">LANCES</span>
-                    </div>
-                    <div class="stat-pill-box">
-                        <span class="stat-pill-icon">💥</span>
-                        <span class="stat-pill-val" id="stat-match-captures">0</span>
-                        <span class="stat-pill-lbl">CAPTURAS</span>
-                    </div>
-                    <div class="stat-pill-box">
-                        <span class="stat-pill-icon">⚡</span>
-                        <span class="stat-pill-val" id="stat-match-combo">x1</span>
-                        <span class="stat-pill-lbl">MAX COMBO</span>
-                    </div>
-                    <div class="stat-pill-box">
-                        <span class="stat-pill-icon">👑</span>
-                        <span class="stat-pill-val" id="stat-match-kings">0</span>
-                        <span class="stat-pill-lbl">DAMAS</span>
-                    </div>
-                    <div class="stat-pill-box xp-reward-box">
-                        <span class="stat-pill-icon">🌟</span>
-                        <span class="stat-pill-val" id="stat-match-xp">+250 XP</span>
-                        <span class="stat-pill-lbl">RECOMPENSA</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer modal-center-footer">
-                <button id="btn-modal-review" class="btn-secondary" title="Inspecionar tabuleiro final sem reiniciar">ANALISAR TABULEIRO</button>
-                <button id="btn-modal-restart" class="btn-primary" title="Iniciar nova disputa">JOGAR NOVAMENTE</button>
-            </div>
+
+            <footer class="modal-actions">
+                <button id="btn-modal-review" class="btn btn-ghost" type="button">
+                    <svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>Ver tabuleiro
+                </button>
+                <button id="btn-modal-restart" class="btn btn-primary" type="button">
+                    <svg class="icon" aria-hidden="true"><use href="#i-restart"/></svg>Jogar de novo
+                </button>
+            </footer>
         </div>
     </div>
 
-    <!-- ===================================================================
-         TACTICAL NOTIFICATIONS & FLOATING TOASTS
-         =================================================================== -->
-    <div id="game-toast" class="toast-notice" role="status" aria-live="polite">Notificação do Sistema</div>
-    <div id="xp-toast" class="xp-toast" role="status" aria-live="polite">+25 XP [Captura]</div>
+    <!-- =============================================================
+         CONFIRMAÇÃO
+         ============================================================= -->
+    <div id="confirm-modal" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-desc">
+        <div class="modal-card confirm-card">
+            <span class="confirm-icon" aria-hidden="true"><svg class="icon"><use href="#i-warning"/></svg></span>
+            <h2 id="confirm-title" class="modal-title">Começar nova partida?</h2>
+            <p id="confirm-desc" class="confirm-desc">A partida em andamento será encerrada.</p>
+            <footer class="modal-actions">
+                <button id="confirm-cancel" class="btn btn-ghost" type="button">Continuar jogando</button>
+                <button id="confirm-ok" class="btn btn-primary" type="button">Nova partida</button>
+            </footer>
+        </div>
+    </div>
 
-    <!-- SCRIPTS -->
+    <!-- Avisos -->
+    <div id="game-toast" class="toast" role="status" aria-live="polite">
+        <svg class="icon" aria-hidden="true"><use id="game-toast-icon" href="#i-info"/></svg>
+        <span id="game-toast-text" class="toast-text"></span>
+    </div>
+    <div id="xp-toast" class="xp-toast" role="status" aria-live="polite">
+        <svg class="icon" aria-hidden="true"><use href="#i-sparkle"/></svg>
+        <span id="xp-toast-text"></span>
+    </div>
+
     <script src="js/audio.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/ai.js"></script>

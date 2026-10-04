@@ -1,73 +1,80 @@
-# 🕹️ DAMAS SYNTHWAVE — Cyber Neon Edition
+# Damas Synthwave
 
-Um jogo de Damas de última geração com estética **Synthwave / Outrun dos anos 80**, visual premium em **Neon Glow**, perspectiva **3D com profundidade cibernética**, efeitos de áudio sintetizados via **Web Audio API** e inteligência artificial tática avançada com as **Regras Oficiais Brasileiras (Dama Voadora e Lei da Maioria)**.
+Damas com as regras oficiais brasileiras, IA com minimax e poda alfa-beta, e estética synthwave. Roda direto no navegador, sem build e sem dependências.
 
----
+## Como jogar
 
-## ✨ Destaques Visuais & Experiência UX/UI
+1. Dê um duplo clique em `index.html`, ou rode `start.bat` no Windows.
+2. Clique numa peça para ver os destinos, ou arraste direto.
+3. Teclado também funciona: `Tab` entra no tabuleiro, as setas movem o foco e `Enter` seleciona e joga.
 
-- **Estética Synthwave & Neon Glow**: Paleta autêntica *Outrun* com tons Cyan Elétrico (`#00f0ff`), Magenta Laser (`#ff007f`), Dourado Solar e Roxo Profundo.
-- **Ambiente Cyberpunk Animado**: Horizonte retrô com Sol Neon listrado, grade wireframe com perspectiva 3D infinita e filtro CRT scanline suave.
-- **Peças Holográficas em 3D**: Discos de energia com anéis concêntricos pulsantes, coroas holográficas animadas para Damas e iluminação dinâmica.
-- **Perspectiva Alternável 3D / 2D**: Alterne entre a visão inclinada em 3D futurista e a visão clássica 2D zenital com um único clique.
-- **Efeitos de Partículas & Impacto Suave**:
-  - Explosões de estilhaços de luz neon ao capturar peças.
-  - Ondas de choque circulares e rastro de luz.
-  - Tremor de tela (*screen shake*) dinâmico para impactos arcade.
-  - Textos flutuantes de combos (`⚡ COMBO DUPLO X2!`, `🔥 ULTRA COMBO X3!`).
-  - Efeito estelar ascendente ao coroar uma Dama.
-- **Sintetizador de Áudio Procedural 80s (Zero dependências externas)**:
-  - Sons analógicos sintetizados em tempo real via Web Audio API (lasers de seleção, sub-graves de movimento, estalo de caixa/snare e fanfarras de vitória).
-  - Trilha sonora Synthwave procedural com linha de baixo arpejada, bumbo 4-on-the-floor e leads analógicos.
+Sem internet, o jogo continua funcionando. As fontes caem para as do sistema e os ícones vêm embutidos.
 
----
+## Regras
 
-## 🧠 Inteligência Artificial & Regras de Jogo
+- Tabuleiro 8×8, 12 pedras por lado, jogo nas casas escuras.
+- A pedra anda uma casa na diagonal para frente e captura para frente e para trás.
+- Captura é obrigatória. Pela lei da maioria, vale a sequência que tira mais peças (a regra casual desliga a lei da maioria).
+- Ao chegar à última linha, a pedra vira dama voadora: anda e captura a qualquer distância nas quatro diagonais.
+- Empate depois de 20 lances de cada lado só com damas, sem captura e sem mover pedra. O painel avisa quando a contagem começa.
 
-- **Regras Oficiais Brasileiras (8x8)**:
-  - Peças comuns movem-se para frente e **capturam para frente e para trás**.
-  - **Dama Voadora**: Move-se por qualquer distância livre nas 4 diagonais e captura a longa distância.
-  - **Lei da Maioria**: Obrigatório escolher a jogada que captura o maior número de peças.
-  - Suporte opcional a Regras Casuais nas configurações.
-- **3 Níveis de IA com Minimax & Alpha-Beta**:
-  - 🟢 **Novato**: IA casual para jogadores iniciantes.
-  - 🟡 **Tático**: IA equilibrada que calcula 3 lances à frente com heurísticas de controle de centro.
-  - 🔴 **Cyber Mestre**: Minimax avançado com poda Alpha-Beta e avaliação tática de damas, colunas vulneráveis e avanço de linhas.
-- **3 Modos de Jogo**:
-  - **Jogador vs Synth-IA** (PvE)
-  - **2 Jogadores Local** (Pass & Play)
-  - **IA vs IA** (Modo Espectador Cyber)
+## Modos e IA
 
----
+- Contra a IA, 2 jogadores no mesmo aparelho, ou IA contra IA.
+- Novato escolhe lances ao acaso entre os permitidos. Tático calcula 3 lances à frente. Mestre calcula 5, com poda alfa-beta.
+- Desfazer contra a IA sempre volta até a sua vez, inclusive depois de uma derrota.
 
-## 🏆 Sistema de Gamificação & Engajamento
+## Interface
 
-- **Níveis & Ranks Cibernéticos**: Ganhe XP ao jogar, capturar peças, formar damas e vencer partidas. Desbloqueie patentes:
-  - *Iniciado Neon* ➔ *Piloto Synth* ➔ *Hacker Retro* ➔ *Cyber Estrategista* ➔ *Comandante Laser* ➔ *Grande Mestre Synthwave*.
-  - Progresso persistido localmente via `LocalStorage`.
-- **Barra de Domínio de Energia**: Visualização contínua do equilíbrio de forças entre os jogadores.
-- **Comandos Rápidos**:
-  - ↩️ **Desfazer (Undo)**: Reverta jogadas a qualquer momento.
-  - 💡 **Dica Tática**: Solicite a melhor jogada avaliada pelo motor cibernético.
-  - 🔄 **Nova Partida**: Reinicie o combate imediatamente.
+| Área | O que mostra |
+| :--- | :--- |
+| Barra superior | De quem é a vez, aviso de captura obrigatória, IA pensando, atalho para o resultado no fim |
+| Coluna esquerda | Os dois jogadores com peças restantes e damas, barra de vantagem, tempo, lances e modo |
+| Coluna direita | Lances em pares numerados (`c3–d4`, `d4×b6`), capturas por lado e maior combo |
+| Dock | Desfazer, dica, nova partida, lances e regras |
 
----
+Em telas menores o layout empilha: oponente acima do tabuleiro, você abaixo e a lista de lances vira gaveta.
 
-## ⌨️ Atalhos de Teclado (Hotkeys)
+A barra de vantagem usa a mesma avaliação da IA (material, com dama valendo 3,2 pedras, mais posição).
+
+## Atalhos
 
 | Tecla | Ação |
 | :--- | :--- |
-| `Z` | Desfazer última jogada (*Undo*) |
-| `H` | Exibir Dica Tática (*Hint*) |
-| `M` | Ligar / Desligar Trilha Sonora Synthwave |
-| `R` | Reiniciar Partida (*Restart*) |
+| `Z` | Desfazer |
+| `H` | Dica |
+| `R` | Nova partida (pede confirmação se houver jogo em andamento) |
+| `L` | Lances |
+| `M` | Trilha sonora |
+| `V` | Alternar tabuleiro 3D e 2D |
+| `Esc` | Fecha painéis e cancela a seleção |
 
----
+## Sistema de design
 
-## 🚀 Como Jogar
+- Tipografia: Unbounded para marca e números grandes, Geist para a interface, Geist Mono para relógio, coordenadas e notação.
+- Cores em variáveis CSS (`css/style.css`, seção 1). Três temas: Outrun, Cyberpunk e Laser. Os nomes dos lados acompanham o tema (Ciano e Magenta, Verde e Âmbar, Azul e Carmim).
+- O neon fica reservado para estado: vez, seleção, captura. O resto é material: peças de laca com bisel, dama empilhada com coroa dourada sobre medalhão escuro, moldura de metal anodizado.
+- Respeita `prefers-reduced-motion`, tem foco visível em todos os controles e rótulos acessíveis em cada casa do tabuleiro.
+- Ajustes (modo, dificuldade, regras, tema, 3D, som) ficam salvos no navegador.
 
-Você pode abrir diretamente o arquivo no seu navegador preferido sem precisar instalar nada!
+## Ícones
 
-1. Dê um duplo-clique no arquivo **`index.html`**;
-2. Ou execute **`start.bat`** (no Windows) para iniciar instantaneamente no navegador;
-3. O jogo funciona 100% offline, sem necessidade de servidores ou pacotes externos.
+Os ícones são do [Phosphor Icons](https://phosphoricons.com) (licença MIT), nos pesos duotone, fill e bold. Eles ficam embutidos como sprite SVG em `js/icons.js`, o que permite gradiente dourado na coroa e funciona abrindo o arquivo direto do disco.
+
+Para trocar ou adicionar ícones, edite a lista em `tools/build-icons.py` e rode:
+
+```
+python tools/build-icons.py
+```
+
+## Estrutura
+
+| Arquivo | Papel |
+| :--- | :--- |
+| `js/engine.js` | Regras, lances legais, lei da maioria, empate |
+| `js/ai.js` | Minimax com poda alfa-beta e heurística de avaliação |
+| `js/ui.js` | Tabuleiro, arrastar e soltar, animações, HUD, lista de lances, fim de partida |
+| `js/fx.js` | Canvas de efeitos: trajetórias de captura, explosões, coroação, fogos |
+| `js/audio.js` | Efeitos e trilha sintetizados com Web Audio API |
+| `js/app.js` | Inicialização, ajustes, diálogos, atalhos |
+| `js/icons.js` | Sprite de ícones gerado |

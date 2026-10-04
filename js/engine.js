@@ -7,6 +7,9 @@
 const PLAYER_CYAN = 'cyan';       // Usually Player 1 (bottom, moves up: row decreasing)
 const PLAYER_MAGENTA = 'magenta'; // Usually Player 2 / AI (top, moves down: row increasing)
 
+// Empate: 20 lances de cada lado (40 meios-lances) só com damas, sem captura e sem mover pedra.
+const DRAW_QUIET_KING_PLIES = 40;
+
 class CheckersEngine {
     constructor(ruleMode = 'brazilian') {
         this.ruleMode = ruleMode; // 'brazilian' (flying kings, back captures, majority rule) or 'casual'
@@ -17,6 +20,7 @@ class CheckersEngine {
         this.kingsCreated = { cyan: 0, magenta: 0 };
         this.lastMove = null;
         this.moveCount = 0;
+        this.quietKingPlies = 0;
         this.initBoard();
     }
 
@@ -40,6 +44,7 @@ class CheckersEngine {
         this.kingsCreated = { cyan: 0, magenta: 0 };
         this.lastMove = null;
         this.moveCount = 0;
+        this.quietKingPlies = 0;
     }
 
     clone() {
@@ -50,6 +55,7 @@ class CheckersEngine {
         cloned.kingsCreated = { ...this.kingsCreated };
         cloned.lastMove = this.lastMove ? JSON.parse(JSON.stringify(this.lastMove)) : null;
         cloned.moveCount = this.moveCount;
+        cloned.quietKingPlies = this.quietKingPlies;
         return cloned;
     }
 
@@ -302,7 +308,8 @@ class CheckersEngine {
             capturedStats: { ...this.capturedStats },
             kingsCreated: { ...this.kingsCreated },
             lastMove: this.lastMove,
-            moveCount: this.moveCount
+            moveCount: this.moveCount,
+            quietKingPlies: this.quietKingPlies
         });
 
         const piece = this.board[move.from.r][move.from.c];
@@ -337,6 +344,7 @@ class CheckersEngine {
 
         this.lastMove = move;
         this.moveCount++;
+        this.quietKingPlies = (piece.isKing && move.capturedPieces.length === 0) ? this.quietKingPlies + 1 : 0;
         this.turn = this.getOpponent(this.turn);
 
         return {
@@ -358,6 +366,7 @@ class CheckersEngine {
         this.kingsCreated = prev.kingsCreated;
         this.lastMove = prev.lastMove;
         this.moveCount = prev.moveCount;
+        this.quietKingPlies = prev.quietKingPlies || 0;
         return true;
     }
 
@@ -373,6 +382,9 @@ class CheckersEngine {
         }
         if (magentaPieces.total === 0 || (this.turn === PLAYER_MAGENTA && magentaMoves.length === 0)) {
             return { over: true, winner: PLAYER_CYAN, reason: magentaPieces.total === 0 ? 'peças eliminadas' : 'sem movimentos válidos' };
+        }
+        if (this.quietKingPlies >= DRAW_QUIET_KING_PLIES) {
+            return { over: true, winner: null, reason: '20 lances de damas sem captura' };
         }
 
         return { over: false, winner: null };
@@ -397,3 +409,4 @@ class CheckersEngine {
 window.CheckersEngine = CheckersEngine;
 window.PLAYER_CYAN = PLAYER_CYAN;
 window.PLAYER_MAGENTA = PLAYER_MAGENTA;
+window.DRAW_QUIET_KING_PLIES = DRAW_QUIET_KING_PLIES;
